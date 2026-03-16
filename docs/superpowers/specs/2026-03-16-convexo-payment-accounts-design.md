@@ -15,7 +15,7 @@ A PAY order represents a user asking Convexo to pay a supplier on their behalf. 
 The order lifecycle:
 1. **DRAFT** — created, not yet submitted
 2. **OPENED** — admin approved; user must now deposit funds into a Convexo account
-3. **ORDERED** — user submitted TxID/proof; Convexo verifies and processes
+3. **ORDERED** — user submitted TxID/proof; awaiting admin review before processing
 4. **EN_REVISION / PROCESANDO** — internal admin statuses
 5. **PAYED** — admin uploaded proof and marked complete
 
@@ -109,6 +109,27 @@ Update `handleConfirmPayment` to:
 - Accept either `txnHash` (crypto) or `userProofUrl` (bank/cash), or both
 - Call updated `confirmPayment` with the new payload shape
 - Validate: at least one of TxID or proof must be provided before enabling "Confirm Payment"
+
+### 4e — Copy order details available at all stages
+
+The existing `buildClipboardText()` + copy button is currently shown only during `OPENED` and `ORDERED` states. Move the button to always be visible (all statuses, including `DRAFT` and `PAYED`) so users can share order details with Convexo CS at any point via WhatsApp, email, etc.
+
+Enrich `buildClipboardText()` to include all relevant fields:
+```
+Convexo Payment Order
+─────────────────────
+Order ID    : #XXXXXXXX
+Status      : OPENED
+Reference   : INV-2024-001
+Supplier    : Proveedor ABC
+Amount      : 1,000.00 USDC
+Fee (1%)    : 10.00 USDC
+Total       : 1,010.00 USDC
+Fiat equiv  : COP 4,300,000
+Created     : 16/03/2026
+Due date    : 20/03/2026
+```
+Add Convexo account details (if one is selected) and TxID (if present) below, as already done today. Status is new — include it so CS knows where the order stands.
 
 ---
 
