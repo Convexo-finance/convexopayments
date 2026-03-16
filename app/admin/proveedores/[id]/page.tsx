@@ -21,7 +21,7 @@ export default async function AdminSupplierDetailPage({ params }: { params: Prom
   return (
     <div>
       <Topbar title={result.internal_name as string} breadcrumb="Admin / Proveedores" />
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
         <div style={{ marginBottom: 20 }}>
           <Link href="/admin/proveedores" style={{ fontSize: 13, color: '#334EAC', textDecoration: 'none' }}>
             ← Volver a Proveedores

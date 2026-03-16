@@ -26,15 +26,15 @@ export default async function CobrarPage() {
         breadcrumb={`${total} collection orders`}
         cta={{ label: '+ Nueva Orden de Cobro', href: '/cobrar/new' }}
       />
-      <div style={{ padding: 24 }}>
-        <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', overflow: 'hidden' }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
+        <div className="table-scroll" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)' }}>
           {!orders || orders.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center', color: 'rgba(186,214,235,0.4)', fontSize: 14 }}>
               No collection orders yet.{' '}
               <Link href="/cobrar/new" style={{ color: '#BAD6EB' }}>Create one →</Link>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 560 }}>
               <thead>
                 <tr>
                   {['Amount', 'Currency', 'Reference', 'Due Date', 'Status', ''].map((h) => (

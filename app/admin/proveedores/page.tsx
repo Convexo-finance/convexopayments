@@ -18,8 +18,8 @@ export default async function AdminProveedoresPage() {
     <div>
       <Topbar title="All Suppliers" breadcrumb="Admin view of supplier entities" />
       <div style={{ padding: 24 }}>
-        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-scroll" style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
             <thead>
               <tr style={{ background: '#faf8f5' }}>
                 {['Name', 'Email', 'Country', 'Created', ''].map((h) => (

@@ -17,7 +17,7 @@ export default async function AdminConfiguracionPage() {
       <div style={{ padding: 24, maxWidth: 800 }}>
         <ConvexoProfileManager
           privyToken={privyToken}
-          initialAccounts={accounts ?? []}
+          initialAccounts={(accounts ?? []) as unknown as Parameters<typeof ConvexoProfileManager>[0]['initialAccounts']}
         />
       </div>
     </div>

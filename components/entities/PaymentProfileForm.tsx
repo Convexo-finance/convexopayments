@@ -106,7 +106,7 @@ export function PaymentProfileForm({
     try {
       const { createPaymentProfile, updatePaymentProfile } = await import('@/lib/actions/payment-profiles')
       const data = {
-        entity_type: entityType,
+        entity_type: entityType as 'SUPPLIER' | 'CLIENT',
         entity_id: entityId,
         method,
         label: label || method,

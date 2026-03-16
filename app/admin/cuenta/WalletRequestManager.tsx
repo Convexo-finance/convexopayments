@@ -103,8 +103,8 @@ export function WalletRequestManager({ requests: initial, privyToken }: WalletRe
         <h2 style={{ fontSize: 12, fontWeight: 700, color: 'rgba(186,214,235,0.4)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>
           {sectionLabel} — {orders.length}
         </h2>
-        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(186,214,235,0.12)', borderRadius: 12, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-scroll" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(186,214,235,0.12)', borderRadius: 12 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(186,214,235,0.08)' }}>
                 {['#ID', 'Usuario', 'Tipo', 'Monto', 'COP', 'Spread', 'Estado', 'Fecha', ''].map(h => (
@@ -174,7 +174,7 @@ export function WalletRequestManager({ requests: initial, privyToken }: WalletRe
                     {isExpanded && (
                       <tr key={r.id + '-expand'}>
                         <td colSpan={9} style={{ padding: 0, background: 'rgba(255,255,255,0.02)' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, borderTop: '1px solid rgba(186,214,235,0.08)' }}>
+                          <div className="expand-panel-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, borderTop: '1px solid rgba(186,214,235,0.08)' }}>
 
                             {/* LEFT: user info + transaction details */}
                             <div style={{ padding: '20px 24px', borderRight: '1px solid rgba(186,214,235,0.08)' }}>

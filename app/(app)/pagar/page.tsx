@@ -26,15 +26,15 @@ export default async function PagarPage() {
         breadcrumb={`${total} payment order${total !== 1 ? 's' : ''}`}
         cta={{ label: '+ New Order', href: '/pagar/new' }}
       />
-      <div style={{ padding: 24 }}>
-        <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', overflow: 'hidden' }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
+        <div className="table-scroll" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)' }}>
           {!orders || orders.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center', color: 'rgba(186,214,235,0.4)', fontSize: 14 }}>
               No payment orders yet.{' '}
               <Link href="/pagar/new" style={{ color: '#BAD6EB' }}>Create one →</Link>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 640 }}>
               <thead>
                 <tr>
                   {['Order ID', 'Provider', 'Payment method', 'Amount', 'Invoice', 'Status', ''].map((h) => (
@@ -72,7 +72,7 @@ export default async function PagarPage() {
                             </div>
                             <div style={{ fontSize: 11, color: 'rgba(186,214,235,0.45)', marginTop: 2 }}>
                               {profile.method}
-                              {profile.details?.bank_name ? ` · ${profile.details.bank_name}` : ''}
+                              {(profile.details as Record<string, string>)?.bank_name ? ` · ${(profile.details as Record<string, string>).bank_name}` : ''}
                             </div>
                           </div>
                         ) : (

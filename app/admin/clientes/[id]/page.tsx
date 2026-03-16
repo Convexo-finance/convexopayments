@@ -21,7 +21,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   return (
     <div>
       <Topbar title={result.internal_name as string} breadcrumb="Admin / Clientes" />
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
         <div style={{ marginBottom: 20 }}>
           <Link href="/admin/clientes" style={{ fontSize: 13, color: '#334EAC', textDecoration: 'none' }}>
             ← Volver a Clientes

@@ -31,8 +31,8 @@ export default async function AdminDashboardPage() {
   return (
     <div>
       <Topbar title="Admin Panel" breadcrumb="pay.convexo.xyz administration" />
-      <div style={{ padding: 24 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
+        <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
           {stats.map((s) => (
             <Link
               key={s.label}
@@ -56,11 +56,11 @@ export default async function AdminDashboardPage() {
 
         {/* Recent pending pay orders */}
         {payOrders.data && payOrders.data.length > 0 && (
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', overflow: 'hidden', marginBottom: 16 }}>
+          <div className="table-scroll" style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', marginBottom: 16 }}>
             <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0ece4' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#081F5C' }}>Pending Pay Orders</span>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 500 }}>
               <thead>
                 <tr>
                   {['User', 'Amount', 'Currency', 'Date', 'Status', ''].map((h) => (

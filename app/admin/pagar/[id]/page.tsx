@@ -53,7 +53,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
   return (
     <div>
       <Topbar title={`Orden ${shortId}`} breadcrumb="Admin / Pedidos PAY" />
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
         {/* Breadcrumb */}
         <div style={{ marginBottom: 20 }}>
           <Link href="/admin/pagar" style={{ fontSize: 13, color: '#334EAC', textDecoration: 'none' }}>
@@ -61,7 +61,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
           </Link>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24, alignItems: 'start' }}>
+        <div className="two-col-layout">
 
           {/* ── LEFT column ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

@@ -25,7 +25,7 @@ export default async function PayOrderDetailPage({ params }: { params: Promise<{
           order={order as unknown as Parameters<typeof OrderDetailClient>[0]['order']}
           privyToken={privyToken}
           backHref="/pagar"
-          convexoAccounts={convexoAccounts ?? []}
+          convexoAccounts={(convexoAccounts ?? []) as unknown as Parameters<typeof OrderDetailClient>[0]['convexoAccounts']}
         />
       </div>
     </div>

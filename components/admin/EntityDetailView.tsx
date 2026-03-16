@@ -30,7 +30,7 @@ export function EntityDetailView({ entity, profiles, orders, entityType }: Entit
     .reduce((sum, o) => sum + Number(o.amount), 0)
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+    <div className="two-col-layout-narrow">
 
       {/* ── LEFT column ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

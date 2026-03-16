@@ -22,8 +22,8 @@ export default async function ProveedoresPage() {
         breadcrumb={`${total} suppliers`}
         cta={{ label: '+ New Supplier', href: '/proveedores/new' }}
       />
-      <div style={{ padding: 24 }}>
-        <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', overflow: 'hidden' }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
+        <div className="table-scroll" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)' }}>
           {!suppliers || suppliers.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center', color: 'rgba(186,214,235,0.4)', fontSize: 14 }}>
               No suppliers yet.{' '}
@@ -32,7 +32,7 @@ export default async function ProveedoresPage() {
               </Link>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 560 }}>
               <thead>
                 <tr>
                   {['Name', 'Legal Name', 'Country', 'Contact Email', 'Status', ''].map((h) => (

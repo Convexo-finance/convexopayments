@@ -18,9 +18,9 @@ export default async function AdminUsuariosPage() {
   return (
     <div>
       <Topbar title="Users" breadcrumb={`${total} registered users`} />
-      <div style={{ padding: 24 }}>
-        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
+        <div className="table-scroll" style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 600 }}>
             <thead>
               <tr>
                 {['Email', 'Role', 'Status', 'RUT', 'Joined', ''].map((h) => (

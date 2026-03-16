@@ -36,7 +36,7 @@ export default async function AdminPayOrdersPage({
   return (
     <div>
       <Topbar title="Admin — Pay Orders" breadcrumb={`${total} total`} />
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 24 }} className="admin-page-pad">
 
         {/* Status filter pills */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -64,8 +64,8 @@ export default async function AdminPayOrdersPage({
         {!orders || orders.length === 0 ? (
           <p style={{ color: '#9ca3af', fontSize: 14 }}>No hay órdenes.</p>
         ) : (
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-scroll" style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
               <thead>
                 <tr style={{ background: '#f9fafb' }}>
                   {['#ID', 'Usuario', 'Entidad', 'Monto', 'Fiat', 'Estado', 'Fecha', ''].map((h) => (
