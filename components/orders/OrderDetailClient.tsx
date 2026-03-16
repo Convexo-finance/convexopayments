@@ -87,13 +87,26 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
     (a) => a.details.direction === 'PAYMENTS' || a.details.direction === 'ALL' || !a.details.direction
   )
 
+  // Available method types from filtered accounts
+  const availableMethods = Array.from(new Set(paymentAccounts.map((a) => a.method)))
+
   const [status, setStatus] = useState(order.status)
   const [txnHash, setTxnHash] = useState(order.txn_hash ?? '')
   const [userProofUrl, setUserProofUrl] = useState(order.user_proof_url ?? '')
-  const [selectedAccount, setSelectedAccount] = useState<string>(paymentAccounts[0]?.id ?? '')
+  const [selectedMethod, setSelectedMethod] = useState<string>(availableMethods[0] ?? '')
+  const [selectedAccount, setSelectedAccount] = useState<string>(
+    paymentAccounts.find((a) => a.method === availableMethods[0])?.id ?? ''
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  function selectMethod(method: string) {
+    setSelectedMethod(method)
+    setSelectedAccount(paymentAccounts.find((a) => a.method === method)?.id ?? '')
+    setTxnHash('')
+    setUserProofUrl('')
+  }
 
   const counterpartyName = order.entity_name ?? '—'
   const currentStep = getStepIndex(status)
@@ -493,149 +506,179 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
             Step 2 — Send Your Payment
           </h3>
           <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)', marginBottom: 20 }}>
-            Transfer the exact amount to one of the Convexo accounts below, then confirm your payment.
+            Choose a payment method, transfer the exact amount, then confirm your payment.
           </p>
 
-          {/* Convexo accounts — filtered to PAYMENTS/ALL */}
           {paymentAccounts.length === 0 ? (
             <p style={{ fontSize: 13, color: '#f59e0b' }}>No Convexo payment accounts configured yet. Contact support.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              {paymentAccounts.map((acct) => {
-                const isSel = selectedAccount === acct.id
-                const chainColor = acct.method === 'CRYPTO' ? (CHAIN_COLORS[acct.details.network] ?? '#888') : '#334EAC'
-                return (
-                  <div
-                    key={acct.id}
-                    onClick={() => setSelectedAccount(acct.id)}
-                    style={{
-                      border: `2px solid ${isSel ? chainColor : 'rgba(186,214,235,0.15)'}`,
-                      borderRadius: 12, padding: 16, cursor: 'pointer',
-                      background: isSel ? chainColor + '10' : 'rgba(255,255,255,0.03)',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-                      <div style={{ flex: 1 }}>
-                        {/* Label row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
-                            {acct.label ?? acct.method}
-                          </span>
-                          <span style={{ background: 'rgba(186,214,235,0.12)', color: 'rgba(186,214,235,0.7)', padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
-                            {acct.method}
-                          </span>
-                          {acct.method === 'CRYPTO' && acct.details.network && (
-                            <span style={{ background: (CHAIN_COLORS[acct.details.network] ?? '#888') + '22', color: CHAIN_COLORS[acct.details.network] ?? '#888', padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
-                              {acct.details.network}
+            <>
+              {/* Method tabs */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                {availableMethods.map((method) => {
+                  const isActive = selectedMethod === method
+                  const methodLabel: Record<string, string> = { CRYPTO: '🔗 Crypto', BANK: '🏦 Bank Transfer', CASH: '💵 Cash' }
+                  return (
+                    <button
+                      key={method}
+                      onClick={() => selectMethod(method)}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        border: isActive ? '2px solid #334EAC' : '2px solid rgba(186,214,235,0.15)',
+                        background: isActive ? 'rgba(51,78,172,0.2)' : 'rgba(255,255,255,0.03)',
+                        color: isActive ? '#BAD6EB' : 'rgba(186,214,235,0.5)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {methodLabel[method] ?? method}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Accounts for selected method */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+                {paymentAccounts.filter(a => a.method === selectedMethod).map((acct) => {
+                  const isSel = selectedAccount === acct.id
+                  const chainColor = acct.method === 'CRYPTO' ? (CHAIN_COLORS[acct.details.network] ?? '#888') : '#334EAC'
+                  return (
+                    <div
+                      key={acct.id}
+                      onClick={() => setSelectedAccount(acct.id)}
+                      style={{
+                        border: `2px solid ${isSel ? chainColor : 'rgba(186,214,235,0.15)'}`,
+                        borderRadius: 12, padding: 16, cursor: 'pointer',
+                        background: isSel ? chainColor + '10' : 'rgba(255,255,255,0.03)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                        <div style={{ flex: 1 }}>
+                          {/* Label row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
+                              {acct.label ?? acct.method}
                             </span>
+                            {acct.method === 'CRYPTO' && acct.details.network && (
+                              <span style={{ background: (CHAIN_COLORS[acct.details.network] ?? '#888') + '22', color: CHAIN_COLORS[acct.details.network] ?? '#888', padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+                                {acct.details.network}
+                              </span>
+                            )}
+                            {acct.method === 'CRYPTO' && acct.details.token && (
+                              <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)' }}>{acct.details.token}</span>
+                            )}
+                          </div>
+
+                          {/* CRYPTO details */}
+                          {acct.method === 'CRYPTO' && acct.details.address && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <code style={{ fontSize: 12, color: 'rgba(186,214,235,0.8)', wordBreak: 'break-all', flex: 1 }}>
+                                {acct.details.address}
+                              </code>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(acct.details.address) }}
+                                style={{ flexShrink: 0, background: 'rgba(186,214,235,0.1)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 6, padding: '3px 8px', fontSize: 11, color: 'rgba(186,214,235,0.7)', cursor: 'pointer' }}
+                              >
+                                Copy
+                              </button>
+                            </div>
                           )}
-                          {acct.method === 'CRYPTO' && acct.details.token && (
-                            <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)' }}>{acct.details.token}</span>
+
+                          {/* BANK details */}
+                          {acct.method === 'BANK' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {acct.details.bank_name && <AccountDetail label="Bank" value={acct.details.bank_name} />}
+                              {acct.details.account_name && <AccountDetail label="Account holder" value={acct.details.account_name} />}
+                              {acct.details.account_number && <AccountDetail label="Account / IBAN" value={acct.details.account_number} copy />}
+                              {acct.details.routing_number && <AccountDetail label="SWIFT / Routing" value={acct.details.routing_number} copy />}
+                              {acct.details.currency && <AccountDetail label="Currency" value={acct.details.currency} />}
+                              {acct.details.country && <AccountDetail label="Country" value={acct.details.country} />}
+                            </div>
+                          )}
+
+                          {/* CASH details */}
+                          {acct.method === 'CASH' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {acct.details.place_name && <AccountDetail label="Location" value={acct.details.place_name} />}
+                              {acct.details.address && <AccountDetail label="Address" value={acct.details.address} />}
+                              {acct.details.city && <AccountDetail label="City" value={acct.details.city} />}
+                              {acct.details.instructions && <AccountDetail label="Instructions" value={acct.details.instructions} />}
+                            </div>
                           )}
                         </div>
 
-                        {/* CRYPTO details */}
+                        {/* QR code — CRYPTO only */}
                         {acct.method === 'CRYPTO' && acct.details.address && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <code style={{ fontSize: 12, color: 'rgba(186,214,235,0.8)', wordBreak: 'break-all', flex: 1 }}>
-                              {acct.details.address}
-                            </code>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(acct.details.address) }}
-                              style={{ flexShrink: 0, background: 'rgba(186,214,235,0.1)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 6, padding: '3px 8px', fontSize: 11, color: 'rgba(186,214,235,0.7)', cursor: 'pointer' }}
-                            >
-                              Copy
-                            </button>
-                          </div>
-                        )}
-
-                        {/* BANK details */}
-                        {acct.method === 'BANK' && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            {acct.details.bank_name && <AccountDetail label="Bank" value={acct.details.bank_name} />}
-                            {acct.details.account_name && <AccountDetail label="Account holder" value={acct.details.account_name} />}
-                            {acct.details.account_number && <AccountDetail label="Account / IBAN" value={acct.details.account_number} copy />}
-                            {acct.details.routing_number && <AccountDetail label="SWIFT / Routing" value={acct.details.routing_number} copy />}
-                            {acct.details.currency && <AccountDetail label="Currency" value={acct.details.currency} />}
-                            {acct.details.country && <AccountDetail label="Country" value={acct.details.country} />}
-                          </div>
-                        )}
-
-                        {/* CASH details */}
-                        {acct.method === 'CASH' && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            {acct.details.place_name && <AccountDetail label="Location" value={acct.details.place_name} />}
-                            {acct.details.address && <AccountDetail label="Address" value={acct.details.address} />}
-                            {acct.details.city && <AccountDetail label="City" value={acct.details.city} />}
-                            {acct.details.instructions && <AccountDetail label="Instructions" value={acct.details.instructions} />}
+                          <div style={{ background: 'white', borderRadius: 8, padding: 8, flexShrink: 0 }}>
+                            <QRCode value={acct.details.address} size={100} />
                           </div>
                         )}
                       </div>
-
-                      {/* QR code — CRYPTO only */}
-                      {acct.method === 'CRYPTO' && acct.details.address && (
-                        <div style={{ background: 'white', borderRadius: 8, padding: 8, flexShrink: 0 }}>
-                          <QRCode value={acct.details.address} size={100} />
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  )
+                })}
+              </div>
+
+              {/* CRYPTO — mandatory TxID */}
+              {selectedMethod === 'CRYPTO' && (
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle}>
+                    Transaction Hash (TxID) <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    style={inputStyle}
+                    placeholder="Paste the transaction hash from your wallet..."
+                    value={txnHash}
+                    onChange={(e) => setTxnHash(e.target.value)}
+                  />
+                  <p style={{ fontSize: 11, color: 'rgba(186,214,235,0.35)', marginTop: 4 }}>
+                    You can find the TxID in your wallet app or on the blockchain explorer after sending.
+                  </p>
+                </div>
+              )}
+
+              {/* BANK — mandatory proof of payment upload */}
+              {selectedMethod === 'BANK' && (
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle}>
+                    Proof of Payment <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <FileUpload
+                    label="Upload bank receipt or transfer confirmation (PDF, JPG, PNG)"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    currentUrl={userProofUrl || undefined}
+                    onUpload={async (file) => {
+                      const { uploadUserProof } = await import('@/lib/actions/orders')
+                      const url = await uploadUserProof(privyToken, file)
+                      setUserProofUrl(url)
+                      return url
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* CASH — no extra field required */}
+
+              {/* Confirm button */}
+              {(() => {
+                const canConfirm = !!selectedAccount && (
+                  selectedMethod === 'CRYPTO' ? !!txnHash.trim() :
+                  selectedMethod === 'BANK'   ? !!userProofUrl :
+                  true
                 )
-              })}
-            </div>
+                return (
+                  <button
+                    onClick={handleConfirmPayment}
+                    disabled={loading || !canConfirm}
+                    style={{ ...primaryBtn, opacity: (!canConfirm || loading) ? 0.5 : 1, cursor: (!canConfirm || loading) ? 'not-allowed' : 'pointer' }}
+                  >
+                    {loading ? 'Confirming...' : 'Confirm Payment →'}
+                  </button>
+                )
+              })()}
+            </>
           )}
-
-          {/* TxID — only for CRYPTO accounts */}
-          {selectedAccount && paymentAccounts.find(a => a.id === selectedAccount)?.method === 'CRYPTO' && (
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Transaction Hash (TxID)</label>
-              <input
-                style={inputStyle}
-                placeholder="Paste the transaction hash from your wallet..."
-                value={txnHash}
-                onChange={(e) => setTxnHash(e.target.value)}
-              />
-              <p style={{ fontSize: 11, color: 'rgba(186,214,235,0.35)', marginTop: 4 }}>
-                You can find the TxID in your wallet app or on the blockchain explorer after sending.
-              </p>
-            </div>
-          )}
-
-          {/* Proof of payment upload — always shown when account selected */}
-          {selectedAccount && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Proof of Payment</label>
-              <FileUpload
-                label="Upload bank receipt, transfer confirmation or payment screenshot (PDF, JPG, PNG)"
-                accept=".pdf,.jpg,.jpeg,.png"
-                currentUrl={userProofUrl || undefined}
-                onUpload={async (file) => {
-                  const { uploadUserProof } = await import('@/lib/actions/orders')
-                  const url = await uploadUserProof(privyToken, file)
-                  setUserProofUrl(url)
-                  return url
-                }}
-              />
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {(() => {
-              const isCrypto = paymentAccounts.find(a => a.id === selectedAccount)?.method === 'CRYPTO'
-              const canConfirm = !!selectedAccount && (isCrypto ? (!!txnHash.trim() || !!userProofUrl) : !!userProofUrl)
-              return (
-                <button
-                  onClick={handleConfirmPayment}
-                  disabled={loading || !canConfirm}
-                  style={{ ...primaryBtn, opacity: (!canConfirm || loading) ? 0.5 : 1, cursor: (!canConfirm || loading) ? 'not-allowed' : 'pointer' }}
-                >
-                  {loading ? 'Confirming...' : 'Confirm Payment →'}
-                </button>
-              )
-            })()}
-          </div>
         </div>
       )}
 
