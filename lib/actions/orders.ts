@@ -20,6 +20,21 @@ export async function uploadInvoice(privyToken: string, file: File) {
   return publicUrl
 }
 
+export async function uploadUserProof(privyToken: string, file: File) {
+  const user = await getSessionUser(privyToken)
+  if (!user) throw new Error('NOT_FOUND')
+  const supabase = await createServiceClient()
+  const ext = file.name.split('.').pop() || 'pdf'
+  const path = `user-proofs/${user.id}/${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('documents').upload(path, file, {
+    upsert: true,
+    contentType: file.type || 'application/pdf',
+  })
+  if (error) throw error
+  const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
+  return publicUrl
+}
+
 const CANCEL_ALLOWED = ['DRAFT', 'OPENED']
 
 export type OrderInput = {
@@ -111,16 +126,16 @@ export async function submitOrder(privyToken: string, orderId: string) {
 export async function confirmPayment(
   privyToken: string,
   orderId: string,
-  txnHash: string,
-  convexoAccountId?: string
+  payload: { txnHash?: string; convexoAccountId?: string; userProofUrl?: string }
 ) {
+  const { txnHash, convexoAccountId, userProofUrl } = payload
+  if (!txnHash?.trim() && !userProofUrl) throw new Error('MISSING_PAYMENT_EVIDENCE')
   const user = await getSessionUser(privyToken)
   if (!user) throw new Error('NOT_FOUND')
-  if (!txnHash.trim()) throw new Error('Transaction hash is required')
   const supabase = await createClient(privyToken)
   const { data: order } = await supabase
     .from('payment_orders')
-    .select()
+    .select('status, user_id')
     .eq('id', orderId)
     .eq('user_id', user.id)
     .single()
@@ -128,11 +143,12 @@ export async function confirmPayment(
   const history = await appendStatusHistory(supabase, orderId, 'ORDERED', user.id)
   const update: Record<string, unknown> = {
     status: 'ORDERED',
-    txn_hash: txnHash.trim(),
     status_history: history,
     updated_at: new Date().toISOString(),
   }
+  if (txnHash?.trim()) update.txn_hash = txnHash.trim()
   if (convexoAccountId) update.convexo_account_id = convexoAccountId
+  if (userProofUrl) update.user_proof_url = userProofUrl
   const { data: updated, error } = await supabase
     .from('payment_orders')
     .update(update)

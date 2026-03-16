@@ -367,7 +367,7 @@ export async function adminGetOrderById(privyToken: string, orderId: string) {
   const supabase = await createClient(privyToken)
   const { data: order, error } = await supabase
     .from('payment_orders')
-    .select('*, users(email), payment_profiles!payment_profile_id(*)')
+    .select('*, users(email), payment_profiles!payment_profile_id(*), convexo_accounts!convexo_account_id(*)')
     .eq('id', orderId)
     .single()
   if (error || !order) throw new Error('NOT_FOUND')

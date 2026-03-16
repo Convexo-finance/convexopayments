@@ -11,7 +11,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
   const { id } = await params
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   let order: Awaited<ReturnType<typeof adminGetOrderById>>
   try {
@@ -26,6 +26,9 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userEmail = Array.isArray((order as any).users) ? (order as any).users[0]?.email : (order as any).users?.email
   const details = (profile?.details ?? {}) as Record<string, string>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const convexoAcct = Array.isArray((order as any).convexo_accounts) ? (order as any).convexo_accounts[0] : (order as any).convexo_accounts
+  const convexoAcctDetails = (convexoAcct?.details ?? {}) as Record<string, string>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const history = ((order.status_history ?? []) as any[])
 
@@ -56,7 +59,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
       <div style={{ padding: 24 }} className="admin-page-pad">
         {/* Breadcrumb */}
         <div style={{ marginBottom: 20 }}>
-          <Link href="/admin/pagar" style={{ fontSize: 13, color: '#334EAC', textDecoration: 'none' }}>
+          <Link href="/admin/pagar" style={{ fontSize: 13, color: '#BAD6EB', textDecoration: 'none' }}>
             ← Volver a Órdenes PAY
           </Link>
         </div>
@@ -69,8 +72,8 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
             {/* Order header */}
             <div style={card}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: 20, fontWeight: 800, color: '#081F5C', margin: 0 }}>{shortId}</h1>
-                <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>PAY</span>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: 'rgba(255,255,255,0.9)', margin: 0 }}>{shortId}</h1>
+                <span style={{ background: 'rgba(51,78,172,0.2)', color: '#BAD6EB', padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>PAY</span>
                 <StatusBadge status={order.status} />
               </div>
               <div style={{ display: 'flex', gap: 24, marginTop: 10, flexWrap: 'wrap' }}>
@@ -88,16 +91,16 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
               {displayFee && <Row label="Total a depositar" bold>{(Number(order.amount) + Number(displayFee)).toLocaleString('en-US', { minimumFractionDigits: 2 })} {order.currency}</Row>}
               {displayFiatCurrency && displayFiatAmount && (
                 <>
-                  <div style={{ borderTop: '1px solid #f0ede8', marginTop: 8, paddingTop: 8 }} />
+                  <div style={{ borderTop: '1px solid rgba(186,214,235,0.08)', marginTop: 8, paddingTop: 8 }} />
                   <Row label="Equivalente fiat">{displayFiatCurrency} {Number(displayFiatAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Row>
                   {displayFiatRate && <Row label="Tasa de cambio">1 {order.currency} = {Number(displayFiatRate).toLocaleString('en-US', { minimumFractionDigits: 4 })} {displayFiatCurrency}</Row>}
                 </>
               )}
               {displayReference && <Row label="Referencia">{displayReference}</Row>}
               {(order as any).invoice_url && (
-                <div style={{ borderTop: '1px solid #f0ede8', marginTop: 8, paddingTop: 8 }}>
+                <div style={{ borderTop: '1px solid rgba(186,214,235,0.08)', marginTop: 8, paddingTop: 8 }}>
                   <a href={(order as any).invoice_url} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: '#334EAC', fontWeight: 600, textDecoration: 'none' }}>
+                    style={{ fontSize: 12, color: '#BAD6EB', fontWeight: 600, textDecoration: 'none' }}>
                     📄 Ver factura →
                   </a>
                 </div>
@@ -111,6 +114,54 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
                 </div>
               )}
             </Section>
+
+            {/* User payment info */}
+            {((order as any).convexo_account_id || order.txn_hash || (order as any).user_proof_url) && (
+              <Section title="Pago del usuario">
+                {convexoAcct && (
+                  <>
+                    <Row label="Cuenta Convexo">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ background: 'rgba(51,78,172,0.2)', color: '#BAD6EB', padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+                          {convexoAcct.method}
+                        </span>
+                        {convexoAcct.label && <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{convexoAcct.label}</span>}
+                      </span>
+                    </Row>
+                    {convexoAcct.method === 'CRYPTO' && convexoAcctDetails.network && (
+                      <Row label="Red">{convexoAcctDetails.network}</Row>
+                    )}
+                    {convexoAcct.method === 'CRYPTO' && convexoAcctDetails.address && (
+                      <Row label="Dirección" mono>{convexoAcctDetails.address}</Row>
+                    )}
+                    {convexoAcct.method === 'BANK' && convexoAcctDetails.bank_name && (
+                      <Row label="Banco">{convexoAcctDetails.bank_name}</Row>
+                    )}
+                    {convexoAcct.method === 'BANK' && convexoAcctDetails.account_number && (
+                      <Row label="Cuenta / IBAN" mono>{convexoAcctDetails.account_number}</Row>
+                    )}
+                    {convexoAcct.method === 'CASH' && convexoAcctDetails.place_name && (
+                      <Row label="Ubicación">{convexoAcctDetails.place_name}</Row>
+                    )}
+                  </>
+                )}
+                {order.txn_hash && (
+                  <Row label="TxID del usuario" mono>{order.txn_hash}</Row>
+                )}
+                {(order as any).user_proof_url && (
+                  <div style={{ borderTop: '1px solid rgba(186,214,235,0.08)', marginTop: 8, paddingTop: 8 }}>
+                    <a
+                      href={(order as any).user_proof_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 12, color: '#BAD6EB', fontWeight: 600, textDecoration: 'none' }}
+                    >
+                      📎 Ver comprobante del usuario →
+                    </a>
+                  </div>
+                )}
+              </Section>
+            )}
 
             {/* Entity info */}
             {order.entity && (
@@ -134,10 +185,10 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
             {profile && (
               <Section title="Método de pago del proveedor">
                 <div style={{ marginBottom: 8 }}>
-                  <span style={{ background: '#f0f4ff', color: '#334EAC', padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+                  <span style={{ background: 'rgba(51,78,172,0.2)', color: '#BAD6EB', padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
                     {profile.method}
                   </span>
-                  {profile.label && <span style={{ fontSize: 13, color: '#374151', marginLeft: 8 }}>{profile.label}</span>}
+                  {profile.label && <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginLeft: 8 }}>{profile.label}</span>}
                 </div>
                 {profile.method === 'BANK' && (
                   <>
@@ -204,8 +255,8 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9ca3af' }}>{label}</div>
-      <div style={{ fontSize: 13, color: '#081F5C', marginTop: 2 }}>{value}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(186,214,235,0.4)' }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{value}</div>
     </div>
   )
 }
@@ -224,13 +275,13 @@ function Row({ label, value, bold, mono, children }: {
 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
-      <span style={{ fontSize: 12, color: '#9ca3af', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: 13, color: '#081F5C', fontWeight: bold ? 700 : 400, fontFamily: mono ? 'monospace' : 'inherit', textAlign: 'right', wordBreak: 'break-all' }}>
+      <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: bold ? 700 : 400, fontFamily: mono ? 'monospace' : 'inherit', textAlign: 'right', wordBreak: 'break-all' }}>
         {children ?? value}
       </span>
     </div>
   )
 }
 
-const card: React.CSSProperties = { background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', padding: '18px 20px' }
-const sectionTitle: React.CSSProperties = { fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: 0, marginBottom: 14 }
+const card: React.CSSProperties = { background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', padding: '18px 20px' }
+const sectionTitle: React.CSSProperties = { fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(186,214,235,0.4)', margin: 0, marginBottom: 14 }

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import QRCode from 'react-qr-code'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { FileUpload } from '@/components/ui/FileUpload'
 import { OrderStatusHistory } from './OrderStatusHistory'
 
 interface StatusHistoryEntry {
@@ -27,6 +28,7 @@ interface Order {
   reference: string | null
   invoice_url: string | null
   proof_url: string | null
+  user_proof_url: string | null
   txn_hash: string | null
   rejection_reason: string | null
   created_at: string | null
@@ -72,9 +74,15 @@ function getStepIndex(status: string) {
 }
 
 export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts = [] }: OrderDetailClientProps) {
+  // Filter to accounts available for PAY orders
+  const paymentAccounts = convexoAccounts.filter(
+    (a) => a.details.direction === 'PAYMENTS' || a.details.direction === 'ALL' || !a.details.direction
+  )
+
   const [status, setStatus] = useState(order.status)
   const [txnHash, setTxnHash] = useState(order.txn_hash ?? '')
-  const [selectedAccount, setSelectedAccount] = useState<string>(convexoAccounts[0]?.id ?? '')
+  const [userProofUrl, setUserProofUrl] = useState(order.user_proof_url ?? '')
+  const [selectedAccount, setSelectedAccount] = useState<string>(paymentAccounts[0]?.id ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -127,11 +135,23 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
   }
 
   async function handleConfirmPayment() {
-    if (!txnHash.trim()) { setError('Please enter the transaction hash.'); return }
+    const isCrypto = paymentAccounts.find(a => a.id === selectedAccount)?.method === 'CRYPTO'
+    if (isCrypto && !txnHash.trim() && !userProofUrl) {
+      setError('Please enter the transaction hash or upload a proof of payment.')
+      return
+    }
+    if (!isCrypto && !userProofUrl) {
+      setError('Please upload a proof of payment (bank receipt or transfer confirmation).')
+      return
+    }
     setLoading(true); setError(null)
     try {
       const { confirmPayment } = await import('@/lib/actions/orders')
-      await confirmPayment(privyToken, order.id, txnHash, selectedAccount || undefined)
+      await confirmPayment(privyToken, order.id, {
+        txnHash: txnHash.trim() || undefined,
+        convexoAccountId: selectedAccount || undefined,
+        userProofUrl: userProofUrl || undefined,
+      })
       setStatus('ORDERED')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error')
@@ -151,24 +171,46 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
   }
 
   function buildClipboardText() {
+    const fee = order.processing_fee ?? null
+    const total = fee != null ? Number(order.amount) + Number(fee) : null
     const lines = [
       `Convexo Payment Order`,
       `─────────────────────`,
-      `Order ID  : #${shortId}`,
-      ...(displayReference ? [`Reference : ${displayReference}`] : []),
-      `Amount    : ${order.currency} ${Number(order.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      `To        : ${counterpartyName}`,
-      `Date      : ${order.created_at ? new Date(order.created_at).toLocaleDateString() : '—'}`,
+      `Order ID    : #${shortId}`,
+      `Status      : ${status}`,
+      ...(displayReference ? [`Reference   : ${displayReference}`] : []),
+      `Supplier    : ${counterpartyName}`,
+      ``,
+      `Amount      : ${Number(order.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${order.currency}`,
+      ...(fee != null ? [`Fee (1%)    : ${Number(fee).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${order.currency}`] : []),
+      ...(total != null ? [`Total       : ${total.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${order.currency}`] : []),
+      ...(displayFiatCurrency && displayFiatAmount ? [`Fiat equiv  : ${displayFiatCurrency} ${Number(displayFiatAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`] : []),
+      ``,
+      `Created     : ${order.created_at ? new Date(order.created_at).toLocaleDateString() : '—'}`,
+      ...(order.due_date ? [`Due date    : ${new Date(order.due_date).toLocaleDateString()}`] : []),
     ]
     if (selectedAccount) {
-      const acct = convexoAccounts.find((a) => a.id === selectedAccount)
+      const acct = paymentAccounts.find((a) => a.id === selectedAccount)
       if (acct) {
-        lines.push(``, `Pay to (Convexo)`)
-        lines.push(`Network   : ${acct.details.network ?? '—'}`)
-        lines.push(`Token     : ${acct.details.token ?? '—'}`)
-        lines.push(`Address   : ${acct.details.address ?? '—'}`)
+        lines.push(``, `Pay to (Convexo — ${acct.method})`)
+        if (acct.method === 'CRYPTO') {
+          lines.push(`Network     : ${acct.details.network ?? '—'}`)
+          lines.push(`Token       : ${acct.details.token ?? '—'}`)
+          lines.push(`Address     : ${acct.details.address ?? '—'}`)
+        } else if (acct.method === 'BANK') {
+          if (acct.details.bank_name) lines.push(`Bank        : ${acct.details.bank_name}`)
+          if (acct.details.account_name) lines.push(`Holder      : ${acct.details.account_name}`)
+          if (acct.details.account_number) lines.push(`Account     : ${acct.details.account_number}`)
+          if (acct.details.routing_number) lines.push(`SWIFT       : ${acct.details.routing_number}`)
+          if (acct.details.currency) lines.push(`Currency    : ${acct.details.currency}`)
+        } else if (acct.method === 'CASH') {
+          if (acct.details.place_name) lines.push(`Location    : ${acct.details.place_name}`)
+          if (acct.details.address) lines.push(`Address     : ${acct.details.address}`)
+          if (acct.details.instructions) lines.push(`Instructions: ${acct.details.instructions}`)
+        }
       }
     }
+    if (txnHash) lines.push(``, `TxID        : ${txnHash}`)
     return lines.join('\n')
   }
 
@@ -375,8 +417,8 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
           </div>
         )}
 
-        {/* Actions */}
-        <div style={{ marginTop: 20, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {/* Actions + copy — always visible */}
+        <div style={{ marginTop: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {status === 'DRAFT' && (
             <button onClick={handleSubmit} disabled={loading}
               style={{ ...primaryBtn, opacity: loading ? 0.6 : 1, cursor: loading ? 'wait' : 'pointer' }}>
@@ -388,6 +430,9 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
               {loading ? '...' : 'Cancel Order'}
             </button>
           )}
+          <button onClick={handleCopy} style={ghostBtn}>
+            {copied ? '✓ Copied!' : '📋 Copy Order Details'}
+          </button>
         </div>
       </div>
 
@@ -398,17 +443,17 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
             Step 2 — Send Your Payment
           </h3>
           <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)', marginBottom: 20 }}>
-            Transfer the exact amount to one of the Convexo accounts below, then enter your transaction hash to confirm.
+            Transfer the exact amount to one of the Convexo accounts below, then confirm your payment.
           </p>
 
-          {/* Convexo accounts */}
-          {convexoAccounts.length === 0 ? (
+          {/* Convexo accounts — filtered to PAYMENTS/ALL */}
+          {paymentAccounts.length === 0 ? (
             <p style={{ fontSize: 13, color: '#f59e0b' }}>No Convexo payment accounts configured yet. Contact support.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              {convexoAccounts.map((acct) => {
+              {paymentAccounts.map((acct) => {
                 const isSel = selectedAccount === acct.id
-                const chainColor = CHAIN_COLORS[acct.details.network] ?? '#888'
+                const chainColor = acct.method === 'CRYPTO' ? (CHAIN_COLORS[acct.details.network] ?? '#888') : '#334EAC'
                 return (
                   <div
                     key={acct.id}
@@ -422,21 +467,26 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        {/* Label row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
                             {acct.label ?? acct.method}
                           </span>
-                          {acct.details.network && (
-                            <span style={{ background: chainColor + '22', color: chainColor, padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+                          <span style={{ background: 'rgba(186,214,235,0.12)', color: 'rgba(186,214,235,0.7)', padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+                            {acct.method}
+                          </span>
+                          {acct.method === 'CRYPTO' && acct.details.network && (
+                            <span style={{ background: (CHAIN_COLORS[acct.details.network] ?? '#888') + '22', color: CHAIN_COLORS[acct.details.network] ?? '#888', padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
                               {acct.details.network}
                             </span>
                           )}
-                          {acct.details.token && (
+                          {acct.method === 'CRYPTO' && acct.details.token && (
                             <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)' }}>{acct.details.token}</span>
                           )}
                         </div>
 
-                        {acct.details.address && (
+                        {/* CRYPTO details */}
+                        {acct.method === 'CRYPTO' && acct.details.address && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <code style={{ fontSize: 12, color: 'rgba(186,214,235,0.8)', wordBreak: 'break-all', flex: 1 }}>
                               {acct.details.address}
@@ -450,10 +500,32 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
                             </button>
                           </div>
                         )}
+
+                        {/* BANK details */}
+                        {acct.method === 'BANK' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {acct.details.bank_name && <AccountDetail label="Bank" value={acct.details.bank_name} />}
+                            {acct.details.account_name && <AccountDetail label="Account holder" value={acct.details.account_name} />}
+                            {acct.details.account_number && <AccountDetail label="Account / IBAN" value={acct.details.account_number} copy />}
+                            {acct.details.routing_number && <AccountDetail label="SWIFT / Routing" value={acct.details.routing_number} copy />}
+                            {acct.details.currency && <AccountDetail label="Currency" value={acct.details.currency} />}
+                            {acct.details.country && <AccountDetail label="Country" value={acct.details.country} />}
+                          </div>
+                        )}
+
+                        {/* CASH details */}
+                        {acct.method === 'CASH' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {acct.details.place_name && <AccountDetail label="Location" value={acct.details.place_name} />}
+                            {acct.details.address && <AccountDetail label="Address" value={acct.details.address} />}
+                            {acct.details.city && <AccountDetail label="City" value={acct.details.city} />}
+                            {acct.details.instructions && <AccountDetail label="Instructions" value={acct.details.instructions} />}
+                          </div>
+                        )}
                       </div>
 
-                      {/* QR */}
-                      {acct.details.address && (
+                      {/* QR code — CRYPTO only */}
+                      {acct.method === 'CRYPTO' && acct.details.address && (
                         <div style={{ background: 'white', borderRadius: 8, padding: 8, flexShrink: 0 }}>
                           <QRCode value={acct.details.address} size={100} />
                         </div>
@@ -465,31 +537,54 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
             </div>
           )}
 
-          {/* Transaction hash input */}
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>Transaction Hash (TxID) *</label>
-            <input
-              style={inputStyle}
-              placeholder="Paste the transaction hash from your wallet..."
-              value={txnHash}
-              onChange={(e) => setTxnHash(e.target.value)}
-            />
-            <p style={{ fontSize: 11, color: 'rgba(186,214,235,0.35)', marginTop: 4 }}>
-              You can find the TxID in your wallet app or on the blockchain explorer after sending.
-            </p>
-          </div>
+          {/* TxID — only for CRYPTO accounts */}
+          {selectedAccount && paymentAccounts.find(a => a.id === selectedAccount)?.method === 'CRYPTO' && (
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Transaction Hash (TxID)</label>
+              <input
+                style={inputStyle}
+                placeholder="Paste the transaction hash from your wallet..."
+                value={txnHash}
+                onChange={(e) => setTxnHash(e.target.value)}
+              />
+              <p style={{ fontSize: 11, color: 'rgba(186,214,235,0.35)', marginTop: 4 }}>
+                You can find the TxID in your wallet app or on the blockchain explorer after sending.
+              </p>
+            </div>
+          )}
+
+          {/* Proof of payment upload — always shown when account selected */}
+          {selectedAccount && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Proof of Payment</label>
+              <FileUpload
+                label="Upload bank receipt, transfer confirmation or payment screenshot (PDF, JPG, PNG)"
+                accept=".pdf,.jpg,.jpeg,.png"
+                currentUrl={userProofUrl || undefined}
+                onUpload={async (file) => {
+                  const { uploadUserProof } = await import('@/lib/actions/orders')
+                  const url = await uploadUserProof(privyToken, file)
+                  setUserProofUrl(url)
+                  return url
+                }}
+              />
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button
-              onClick={handleConfirmPayment}
-              disabled={loading || !txnHash.trim()}
-              style={{ ...primaryBtn, opacity: (!txnHash.trim() || loading) ? 0.5 : 1, cursor: (!txnHash.trim() || loading) ? 'not-allowed' : 'pointer' }}
-            >
-              {loading ? 'Confirming...' : 'Confirm Payment →'}
-            </button>
-            <button onClick={handleCopy} style={ghostBtn}>
-              {copied ? '✓ Copied!' : '📋 Copy Order Details'}
-            </button>
+            {(() => {
+              const isCrypto = paymentAccounts.find(a => a.id === selectedAccount)?.method === 'CRYPTO'
+              const canConfirm = !!selectedAccount && (isCrypto ? (!!txnHash.trim() || !!userProofUrl) : !!userProofUrl)
+              return (
+                <button
+                  onClick={handleConfirmPayment}
+                  disabled={loading || !canConfirm}
+                  style={{ ...primaryBtn, opacity: (!canConfirm || loading) ? 0.5 : 1, cursor: (!canConfirm || loading) ? 'not-allowed' : 'pointer' }}
+                >
+                  {loading ? 'Confirming...' : 'Confirm Payment →'}
+                </button>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -509,9 +604,6 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
                   TxID: {order.txn_hash}
                 </p>
               )}
-              <button onClick={handleCopy} style={{ ...ghostBtn, marginTop: 12 }}>
-                {copied ? '✓ Copied!' : '📋 Copy Order Details'}
-              </button>
             </div>
           </div>
         </div>
@@ -565,6 +657,26 @@ function Field({ label, value }: { label: string; value: string }) {
     <div>
       <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(186,214,235,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{label}</p>
       <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{value}</p>
+    </div>
+  )
+}
+
+function AccountDetail({ label, value, copy }: { label: string; value: string; copy?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)', flexShrink: 0 }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', textAlign: 'right', wordBreak: 'break-all' }}>{value}</span>
+        {copy && (
+          <button
+            type="button"
+            onClick={() => navigator.clipboard.writeText(value)}
+            style={{ flexShrink: 0, background: 'rgba(186,214,235,0.1)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 6, padding: '2px 7px', fontSize: 10, color: 'rgba(186,214,235,0.7)', cursor: 'pointer' }}
+          >
+            Copy
+          </button>
+        )}
+      </div>
     </div>
   )
 }
