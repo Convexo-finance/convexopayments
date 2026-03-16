@@ -17,6 +17,7 @@ const DIRECTIONS = [
   { value: 'VENDER',      label: 'VENDER',            desc: 'OTC sell orders — Convexo sends fiat to user' },
   { value: 'OTC',         label: 'COMPRAR + VENDER',  desc: 'Both OTC directions' },
   { value: 'COLLECTIONS', label: 'COLLECTIONS',       desc: 'Collect orders — client sends fiat here' },
+  { value: 'PAYMENTS',   label: 'PAYMENTS',           desc: 'Pay orders — user sends funds to Convexo to pay a supplier' },
   { value: 'ALL',         label: 'Todos / All',       desc: 'Available everywhere' },
 ]
 
