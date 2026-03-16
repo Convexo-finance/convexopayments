@@ -305,7 +305,6 @@ export async function adminUpdateWalletRequest(
     'WALLET_REQUEST'
   )
 
-  void admin
 }
 
 export async function adminBroadcastNotification(
@@ -361,6 +360,78 @@ export async function adminBroadcastNotification(
       }
     })
   )
+}
+
+export async function adminGetOrderById(privyToken: string, orderId: string) {
+  await requireAdmin(privyToken)
+  const supabase = await createClient(privyToken)
+  const { data: order, error } = await supabase
+    .from('payment_orders')
+    .select('*, users(email), payment_profiles!payment_profile_id(*)')
+    .eq('id', orderId)
+    .single()
+  if (error || !order) throw new Error('NOT_FOUND')
+
+  const table = order.type === 'PAY' ? 'suppliers' : 'clients'
+  const { data: entity } = await supabase
+    .from(table)
+    .select('id, internal_name, legal_name, company_type, registration_country, registration_number, contact_email, company_phone, contact_name, contact_phone, contact_person_email, office_country, state, city, address, postal_code')
+    .eq('id', order.entity_id)
+    .single()
+
+  return { ...order, entity: entity ?? null }
+}
+
+export async function adminGetSupplierById(privyToken: string, id: string) {
+  await requireAdmin(privyToken)
+  const supabase = await createClient(privyToken)
+  const { data: entity, error } = await supabase
+    .from('suppliers')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error || !entity) throw new Error('NOT_FOUND')
+
+  const { data: paymentProfiles } = await supabase
+    .from('payment_profiles')
+    .select('*')
+    .eq('entity_id', id)
+    .order('created_at', { ascending: false })
+
+  const { data: orders } = await supabase
+    .from('payment_orders')
+    .select('id, type, amount, currency, status, created_at')
+    .eq('entity_id', id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  return { ...entity, paymentProfiles: paymentProfiles ?? [], orders: orders ?? [] }
+}
+
+export async function adminGetClientById(privyToken: string, id: string) {
+  await requireAdmin(privyToken)
+  const supabase = await createClient(privyToken)
+  const { data: entity, error } = await supabase
+    .from('clients')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error || !entity) throw new Error('NOT_FOUND')
+
+  const { data: paymentProfiles } = await supabase
+    .from('payment_profiles')
+    .select('*')
+    .eq('entity_id', id)
+    .order('created_at', { ascending: false })
+
+  const { data: orders } = await supabase
+    .from('payment_orders')
+    .select('id, type, amount, currency, status, created_at')
+    .eq('entity_id', id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  return { ...entity, paymentProfiles: paymentProfiles ?? [], orders: orders ?? [] }
 }
 
 export async function adminGetAllSuppliers(

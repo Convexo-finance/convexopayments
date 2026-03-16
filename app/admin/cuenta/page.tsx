@@ -15,9 +15,9 @@ export default async function AdminCuentaPage() {
   try {
     const { data } = await supabase
       .from('wallet_requests')
-      .select('*, users(email)')
+      .select(`*, users(id, email, profiles(first_name, last_name, phone, phone_country_code))`)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(100)
     requests = data ?? []
   } catch {
     requests = []

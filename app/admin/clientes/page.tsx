@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Topbar } from '@/components/layout/Topbar'
 import { requireAdmin } from '@/lib/actions/auth'
 import { adminGetAllClients } from '@/lib/actions/admin'
@@ -21,14 +22,14 @@ export default async function AdminClientesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#faf8f5' }}>
-                {['Name', 'Email', 'Country', 'Created'].map((h) => (
+                {['Name', 'Email', 'Country', 'Created', ''].map((h) => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {((clients ?? []) as unknown[]).length === 0 ? (
-                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: '#aaa', fontSize: 13 }}>No clients yet.</td></tr>
+                <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#aaa', fontSize: 13 }}>No clients yet.</td></tr>
               ) : (
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (clients ?? []).map((c: any) => (
@@ -37,6 +38,9 @@ export default async function AdminClientesPage() {
                     <td style={{ padding: '12px 16px', fontSize: 13, color: '#555' }}>{c.contact_email ?? '—'}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13, color: '#555' }}>{c.office_country ?? '—'}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12, color: '#888' }}>{new Date(c.created_at).toLocaleDateString()}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <Link href={`/admin/clientes/${c.id}`} style={{ fontSize: 12, color: '#334EAC', fontWeight: 600, textDecoration: 'none' }}>Ver →</Link>
+                    </td>
                   </tr>
                 ))
               )}

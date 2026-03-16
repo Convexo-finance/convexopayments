@@ -1,28 +1,179 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Topbar } from '@/components/layout/Topbar'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { adminGetAllOrders } from '@/lib/actions/admin'
-import { AdminOrderTable } from '@/components/admin/AdminOrderTable'
 
-export default async function AdminPagarPage() {
+const STATUSES = ['', 'OPENED', 'ORDERED', 'EN_REVISION', 'PROCESANDO', 'PAYED', 'RECHAZADO']
+const LABELS: Record<string, string> = {
+  '': 'Todos',
+  OPENED: 'Abierto',
+  ORDERED: 'Ordenado',
+  EN_REVISION: 'En Revisión',
+  PROCESANDO: 'Procesando',
+  PAYED: 'Pagado',
+  RECHAZADO: 'Rechazado',
+}
+
+export default async function AdminPayOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; page?: string }>
+}) {
+  const { status = '', page = '1' } = await searchParams
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
   if (!privyToken) redirect('/login')
 
-  const { data: orders, total } = await adminGetAllOrders(privyToken, 'PAY').catch(() => ({
-    data: [],
-    total: 0,
-  }))
+  const { data: orders, total } = await adminGetAllOrders(privyToken, 'PAY', {
+    page: Number(page),
+    status,
+  }).catch(() => ({ data: [], total: 0 }))
+
+  const totalPages = Math.ceil(total / 20)
 
   return (
     <div>
       <Topbar title="Admin — Pay Orders" breadcrumb={`${total} total`} />
       <div style={{ padding: 24 }}>
-        <AdminOrderTable
-          orders={(orders ?? []) as Parameters<typeof AdminOrderTable>[0]['orders']}
-          privyToken={privyToken}
-        />
+
+        {/* Status filter pills */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+          {STATUSES.map((s) => (
+            <Link
+              key={s}
+              href={`/admin/pagar${s ? `?status=${s}` : ''}`}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                textDecoration: 'none',
+                background: status === s ? '#334EAC' : 'white',
+                color: status === s ? 'white' : '#374151',
+                border: `1px solid ${status === s ? '#334EAC' : '#e5e7eb'}`,
+              }}
+            >
+              {LABELS[s]}
+            </Link>
+          ))}
+        </div>
+
+        {/* Table */}
+        {!orders || orders.length === 0 ? (
+          <p style={{ color: '#9ca3af', fontSize: 14 }}>No hay órdenes.</p>
+        ) : (
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f9fafb' }}>
+                  {['#ID', 'Usuario', 'Entidad', 'Monto', 'Fiat', 'Estado', 'Fecha', ''].map((h) => (
+                    <th key={h} style={thStyle}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => {
+                  const entityObj = o.type === 'PAY'
+                    ? (Array.isArray((o as any).suppliers) ? (o as any).suppliers[0] : (o as any).suppliers)
+                    : (Array.isArray((o as any).clients) ? (o as any).clients[0] : (o as any).clients)
+                  const entityName = (o as any).entity_name ?? entityObj?.internal_name ?? '—'
+                  const userEmail = Array.isArray((o as any).users) ? (o as any).users[0]?.email : (o as any).users?.email
+                  const shortId = `#${o.id.slice(0, 8).toUpperCase()}`
+
+                  // Parse fiat info from reference if packed
+                  let fiatDisplay = '—'
+                  const ppDetails = (Array.isArray((o as any).payment_profiles) ? (o as any).payment_profiles[0] : (o as any).payment_profiles)
+                  if ((o as any).fiat_currency && (o as any).fiat_amount) {
+                    fiatDisplay = `${(o as any).fiat_currency} ${Number((o as any).fiat_amount).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+                  } else if (o.reference?.includes('|')) {
+                    for (const part of o.reference.split('|').map((s: string) => s.trim())) {
+                      const m = part.match(/^([A-Z]{3})\s*([\d.,]+)\s*@/)
+                      if (m) { fiatDisplay = `${m[1]} ${Number(m[2].replace(',', '')).toLocaleString('en-US', { maximumFractionDigits: 0 })}` ; break }
+                    }
+                  }
+
+                  return (
+                    <tr key={o.id} style={{ borderTop: '1px solid #f3f4f6' }}>
+                      <td style={tdStyle}>
+                        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#081F5C' }}>{shortId}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: 12, color: '#374151' }}>{userEmail ?? '—'}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: 12, color: '#374151' }}>{entityName}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#081F5C' }}>
+                          {Number(o.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {o.currency}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: 12, color: '#6b7280' }}>{fiatDisplay}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        <StatusBadge status={o.status} />
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                          {o.created_at ? new Date(o.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>
+                        <Link
+                          href={`/admin/pagar/${o.id}`}
+                          style={{ fontSize: 12, fontWeight: 600, color: '#334EAC', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                        >
+                          Ver →
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'center' }}>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Link
+                key={p}
+                href={`/admin/pagar?page=${p}${status ? `&status=${status}` : ''}`}
+                style={{
+                  padding: '6px 12px', borderRadius: 6, fontSize: 13,
+                  textDecoration: 'none',
+                  background: Number(page) === p ? '#334EAC' : 'white',
+                  color: Number(page) === p ? 'white' : '#374151',
+                  border: '1px solid #e5e7eb',
+                }}
+              >
+                {p}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
+}
+
+const thStyle: React.CSSProperties = {
+  padding: '10px 14px',
+  textAlign: 'left',
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: '#9ca3af',
+  borderBottom: '1px solid #e5e7eb',
+}
+
+const tdStyle: React.CSSProperties = {
+  padding: '12px 14px',
+  verticalAlign: 'middle',
 }
