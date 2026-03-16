@@ -193,9 +193,42 @@ await (supabase.rpc as any)('increment_balance', { user_id, amount })
 
 // Mismatched return types from Server Actions
 history={data as unknown as HistoryItem[]}
+
+// JSONB details column (typed as Json) used as Record<string, string>
+const details = (profile.details as Record<string, string>) ?? {}
+// or when passing as a prop to a component:
+initialAccounts={(accounts ?? []) as unknown as Parameters<typeof ComponentName>[0]['propName']}
 ```
 
 These casts are intentional. Don't replace with complex generics.
+
+---
+
+## Responsive Layout — CSS Classes (not inline styles)
+
+Inline styles cannot use `@media` queries. For responsive behavior, apply CSS utility classes
+defined in `app/globals.css` via `className`, and keep visual styles in `style={{}}`.
+
+Key classes already defined:
+- `two-col-layout` — 2-col grid (1fr + 380px), collapses to 1-col on mobile
+- `two-col-layout-narrow` — 2-col grid (1fr + 340px), collapses to 1-col on mobile
+- `table-scroll` — `overflow-x: auto` wrapper for wide tables
+- `admin-page-pad` — 24px padding desktop, 16px on mobile
+- `metric-grid` — 4-col stat cards, reflows to 2-col on mobile
+- `expand-panel-grid` — expandable row 2-col grid, collapses on mobile
+
+**Never use `overflow: 'hidden'` on table wrapper divs** — breaks horizontal scroll on mobile.
+Use `className="table-scroll"` and add `minWidth` to the `<table>` instead:
+
+```tsx
+// WRONG
+<div style={{ overflow: 'hidden' }}>
+  <table style={{ width: '100%' }}>
+
+// CORRECT
+<div className="table-scroll" style={{ ...otherStyles }}>
+  <table style={{ width: '100%', minWidth: 600 }}>
+```
 
 ---
 
@@ -333,3 +366,5 @@ Always search the Privy docs before assuming an API shape — Privy's config opt
 - Do not skip `requireAdmin()` in admin Server Actions
 - Do not add `--no-turbopack` to the dev script (removed in Next.js 16)
 - Do not use `auth.uid()::text` in RLS policies — use `public.privy_sub()` instead
+- Do not use `overflow: 'hidden'` on table wrappers — use `className="table-scroll"` instead
+- `npx tsc --noEmit` — use to verify no TS build errors; ignore errors in `tests/placeholder.test.ts` (missing @types/jest, pre-existing)
