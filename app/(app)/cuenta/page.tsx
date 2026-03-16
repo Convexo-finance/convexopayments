@@ -8,7 +8,7 @@ import { OnChainBalances } from './OnChainBalances'
 export default async function CuentaPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const walletData = await getWalletData(privyToken).catch(() => ({
     balance: 0,

@@ -24,7 +24,7 @@ export default async function AdminPayOrdersPage({
   const { status = '', page = '1' } = await searchParams
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const { data: orders, total } = await adminGetAllOrders(privyToken, 'PAY', {
     page: Number(page),
@@ -50,9 +50,9 @@ export default async function AdminPayOrdersPage({
                 fontSize: 12,
                 fontWeight: 600,
                 textDecoration: 'none',
-                background: status === s ? '#334EAC' : 'white',
-                color: status === s ? 'white' : '#374151',
-                border: `1px solid ${status === s ? '#334EAC' : '#e5e7eb'}`,
+                background: status === s ? '#334EAC' : 'rgba(255,255,255,0.06)',
+                color: status === s ? 'white' : 'rgba(186,214,235,0.7)',
+                border: `1px solid ${status === s ? '#334EAC' : 'rgba(186,214,235,0.15)'}`,
               }}
             >
               {LABELS[s]}
@@ -62,12 +62,12 @@ export default async function AdminPayOrdersPage({
 
         {/* Table */}
         {!orders || orders.length === 0 ? (
-          <p style={{ color: '#9ca3af', fontSize: 14 }}>No hay órdenes.</p>
+          <p style={{ color: 'rgba(186,214,235,0.4)', fontSize: 14 }}>No hay órdenes.</p>
         ) : (
-          <div className="table-scroll" style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc' }}>
+          <div className="table-scroll" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
               <thead>
-                <tr style={{ background: '#f9fafb' }}>
+                <tr>
                   {['#ID', 'Usuario', 'Entidad', 'Monto', 'Fiat', 'Estado', 'Fecha', ''].map((h) => (
                     <th key={h} style={thStyle}>{h}</th>
                   ))}
@@ -95,36 +95,36 @@ export default async function AdminPayOrdersPage({
                   }
 
                   return (
-                    <tr key={o.id} style={{ borderTop: '1px solid #f3f4f6' }}>
+                    <tr key={o.id} style={{ borderTop: '1px solid rgba(186,214,235,0.07)' }}>
                       <td style={tdStyle}>
-                        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#081F5C' }}>{shortId}</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{shortId}</span>
                       </td>
                       <td style={tdStyle}>
-                        <span style={{ fontSize: 12, color: '#374151' }}>{userEmail ?? '—'}</span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>{userEmail ?? '—'}</span>
                       </td>
                       <td style={tdStyle}>
-                        <span style={{ fontSize: 12, color: '#374151' }}>{entityName}</span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>{entityName}</span>
                       </td>
                       <td style={tdStyle}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#081F5C' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
                           {Number(o.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {o.currency}
                         </span>
                       </td>
                       <td style={tdStyle}>
-                        <span style={{ fontSize: 12, color: '#6b7280' }}>{fiatDisplay}</span>
+                        <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)' }}>{fiatDisplay}</span>
                       </td>
                       <td style={tdStyle}>
                         <StatusBadge status={o.status} />
                       </td>
                       <td style={tdStyle}>
-                        <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                        <span style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)' }}>
                           {o.created_at ? new Date(o.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                         </span>
                       </td>
                       <td style={tdStyle}>
                         <Link
                           href={`/admin/pagar/${o.id}`}
-                          style={{ fontSize: 12, fontWeight: 600, color: '#334EAC', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                          style={{ fontSize: 12, fontWeight: 600, color: '#BAD6EB', textDecoration: 'none', whiteSpace: 'nowrap' }}
                         >
                           Ver →
                         </Link>
@@ -147,9 +147,9 @@ export default async function AdminPayOrdersPage({
                 style={{
                   padding: '6px 12px', borderRadius: 6, fontSize: 13,
                   textDecoration: 'none',
-                  background: Number(page) === p ? '#334EAC' : 'white',
-                  color: Number(page) === p ? 'white' : '#374151',
-                  border: '1px solid #e5e7eb',
+                  background: Number(page) === p ? '#334EAC' : 'rgba(255,255,255,0.06)',
+                  color: Number(page) === p ? 'white' : 'rgba(186,214,235,0.7)',
+                  border: `1px solid ${Number(page) === p ? '#334EAC' : 'rgba(186,214,235,0.15)'}`,
                 }}
               >
                 {p}
@@ -169,11 +169,12 @@ const thStyle: React.CSSProperties = {
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#9ca3af',
-  borderBottom: '1px solid #e5e7eb',
+  color: 'rgba(186,214,235,0.4)',
+  borderBottom: '1px solid rgba(186,214,235,0.08)',
 }
 
 const tdStyle: React.CSSProperties = {
   padding: '12px 14px',
   verticalAlign: 'middle',
+  color: 'rgba(255,255,255,0.85)',
 }

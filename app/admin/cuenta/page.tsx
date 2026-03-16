@@ -8,7 +8,7 @@ import { WalletRequestManager } from './WalletRequestManager'
 export default async function AdminCuentaPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const supabase = await createClient(privyToken)
   let requests: unknown[] = []

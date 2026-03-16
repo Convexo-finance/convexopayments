@@ -8,7 +8,7 @@ import { adminGetAllOrders } from '@/lib/actions/admin'
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const [payOrders, collectOrders] = await Promise.all([
     adminGetAllOrders(privyToken, 'PAY', { status: 'ENVIADO' }).catch(() => ({
@@ -24,8 +24,8 @@ export default async function AdminDashboardPage() {
   const stats = [
     { label: 'Pending Pay Orders', value: payOrders.total, href: '/admin/pagar', color: '#334EAC' },
     { label: 'Pending Collect Orders', value: collectOrders.total, href: '/admin/cobrar', color: '#401777' },
-    { label: 'Manage Users', value: '→', href: '/admin/usuarios', color: '#081F5C' },
-    { label: 'Convexo Config', value: '→', href: '/admin/configuracion', color: '#081F5C' },
+    { label: 'Manage Users', value: '→', href: '/admin/usuarios', color: '#BAD6EB' },
+    { label: 'Convexo Config', value: '→', href: '/admin/configuracion', color: '#BAD6EB' },
   ]
 
   return (
@@ -38,15 +38,15 @@ export default async function AdminDashboardPage() {
               key={s.label}
               href={s.href}
               style={{
-                background: 'white',
+                background: 'rgba(255,255,255,0.05)',
                 borderRadius: 12,
                 padding: 16,
-                border: '1px solid #e8e4dc',
+                border: '1px solid rgba(186,214,235,0.1)',
                 textDecoration: 'none',
                 display: 'block',
               }}
             >
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#999', marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)', marginBottom: 8 }}>
                 {s.label}
               </div>
               <div style={{ fontSize: 28, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -56,9 +56,9 @@ export default async function AdminDashboardPage() {
 
         {/* Recent pending pay orders */}
         {payOrders.data && payOrders.data.length > 0 && (
-          <div className="table-scroll" style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', marginBottom: 16 }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0ece4' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#081F5C' }}>Pending Pay Orders</span>
+          <div className="table-scroll" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', marginBottom: 16 }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(186,214,235,0.08)' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Pending Pay Orders</span>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 500 }}>
               <thead>
@@ -70,16 +70,16 @@ export default async function AdminDashboardPage() {
               </thead>
               <tbody>
                 {payOrders.data.slice(0, 5).map((o: Record<string, unknown>) => (
-                  <tr key={o.id as string} style={{ borderBottom: '1px solid #f8f6f2' }}>
+                  <tr key={o.id as string} style={{ borderTop: '1px solid rgba(186,214,235,0.07)' }}>
                     <td style={tdStyle}>{(o.users as Record<string, unknown>)?.email as string ?? '—'}</td>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{Number(o.amount).toLocaleString()}</td>
                     <td style={tdStyle}>{o.currency as string}</td>
-                    <td style={{ ...tdStyle, color: '#888' }}>
+                    <td style={{ ...tdStyle, color: 'rgba(186,214,235,0.5)' }}>
                       {o.created_at ? new Date(o.created_at as string).toLocaleDateString() : '—'}
                     </td>
                     <td style={tdStyle}><StatusBadge status={o.status as string} /></td>
                     <td style={tdStyle}>
-                      <Link href={`/admin/pagar`} style={{ color: '#334EAC', fontSize: 12, textDecoration: 'none', fontWeight: 600 }}>
+                      <Link href={`/admin/pagar`} style={{ color: '#BAD6EB', fontSize: 12, textDecoration: 'none', fontWeight: 600 }}>
                         Manage →
                       </Link>
                     </td>
@@ -94,5 +94,5 @@ export default async function AdminDashboardPage() {
   )
 }
 
-const thStyle: React.CSSProperties = { padding: '10px 16px', textAlign: 'left', fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', color: '#aaa', fontWeight: 600, borderBottom: '1px solid #f0ece4' }
-const tdStyle: React.CSSProperties = { padding: '11px 16px', color: '#081F5C' }
+const thStyle: React.CSSProperties = { padding: '10px 16px', textAlign: 'left', fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)', fontWeight: 600, borderBottom: '1px solid rgba(186,214,235,0.08)' }
+const tdStyle: React.CSSProperties = { padding: '11px 16px', color: 'rgba(255,255,255,0.85)' }

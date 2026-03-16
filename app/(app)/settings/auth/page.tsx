@@ -7,10 +7,10 @@ import { AuthSettingsClient } from './AuthSettingsClient'
 export default async function AuthSettingsPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const user = await getSessionUser(privyToken).catch(() => null)
-  if (!user) redirect('/login')
+  if (!user) redirect('/')
 
   return (
     <div>

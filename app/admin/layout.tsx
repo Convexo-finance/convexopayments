@@ -39,7 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <AdminGuard>
       <div style={{ display: 'flex', minHeight: '100vh' }}>
         <Sidebar isAdmin nav={ADMIN_NAV} />
-        <main style={{ flex: 1, overflow: 'auto' }}>{children}</main>
+        <main style={{ flex: 1, overflow: 'auto', background: 'linear-gradient(160deg, #02001A 0%, #110020 50%, #02001A 100%)' }}>{children}</main>
       </div>
     </AdminGuard>
   )

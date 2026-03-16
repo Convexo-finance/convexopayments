@@ -35,13 +35,13 @@ export function BroadcastForm({ privyToken }: { privyToken: string }) {
   }
 
   return (
-    <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', padding: 24 }}>
-      <h2 style={{ fontSize: 15, fontWeight: 700, color: '#081F5C', marginBottom: 20 }}>
+    <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', padding: 24 }}>
+      <h2 style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 20 }}>
         Send Notification
       </h2>
 
       {success && (
-        <div style={{ background: '#d1fae5', borderRadius: 8, padding: '12px 16px', color: '#065f46', fontSize: 14, marginBottom: 16 }}>
+        <div style={{ background: 'rgba(16,185,129,0.15)', borderRadius: 8, padding: '12px 16px', color: '#10b981', fontSize: 14, marginBottom: 16 }}>
           ✓ Notification sent successfully.
         </div>
       )}
@@ -87,11 +87,11 @@ export function BroadcastForm({ privyToken }: { privyToken: string }) {
         </div>
 
         <div style={{ display: 'flex', gap: 20 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#555', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'rgba(186,214,235,0.7)', cursor: 'pointer' }}>
             <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
             Send email
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#555', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'rgba(186,214,235,0.7)', cursor: 'pointer' }}>
             <input type="checkbox" checked={sendInApp} onChange={(e) => setSendInApp(e.target.checked)} />
             Send in-app
           </label>
@@ -121,5 +121,5 @@ export function BroadcastForm({ privyToken }: { privyToken: string }) {
   )
 }
 
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid #e5e7eb', fontSize: 13, color: '#081F5C', background: 'white', outline: 'none' }
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(186,214,235,0.7)', marginBottom: 6 }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid rgba(186,214,235,0.2)', fontSize: 13, color: 'white', background: 'rgba(255,255,255,0.07)', outline: 'none' }

@@ -8,7 +8,7 @@ import { OtcClient } from './OtcClient'
 export default async function OtcPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const user = await getSessionUser(privyToken)
   if (!user?.is_enabled) redirect('/dashboard')

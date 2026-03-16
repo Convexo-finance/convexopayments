@@ -9,7 +9,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const { id } = await params
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const [client, profiles] = await Promise.all([
     getClientById(privyToken, id).catch(() => null),

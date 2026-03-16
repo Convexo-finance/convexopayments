@@ -9,7 +9,7 @@ export default async function AdminSupplierDetailPage({ params }: { params: Prom
   const { id } = await params
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   let result: Awaited<ReturnType<typeof adminGetSupplierById>>
   try {
@@ -23,7 +23,7 @@ export default async function AdminSupplierDetailPage({ params }: { params: Prom
       <Topbar title={result.internal_name as string} breadcrumb="Admin / Proveedores" />
       <div style={{ padding: 24 }} className="admin-page-pad">
         <div style={{ marginBottom: 20 }}>
-          <Link href="/admin/proveedores" style={{ fontSize: 13, color: '#334EAC', textDecoration: 'none' }}>
+          <Link href="/admin/proveedores" style={{ fontSize: 13, color: '#BAD6EB', textDecoration: 'none' }}>
             ← Volver a Proveedores
           </Link>
         </div>

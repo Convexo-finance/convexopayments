@@ -91,21 +91,21 @@ export function UserDetailClient({ user, privyToken }: UserDetailClientProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {error && <div style={{ background: '#fee2e2', borderRadius: 8, padding: '12px 16px', color: '#991b1b', fontSize: 13 }}>{error}</div>}
-      {success && <div style={{ background: '#d1fae5', borderRadius: 8, padding: '12px 16px', color: '#065f46', fontSize: 13 }}>{success}</div>}
+      {error && <div style={{ background: 'rgba(239,68,68,0.15)', borderRadius: 8, padding: '12px 16px', color: '#ef4444', fontSize: 13 }}>{error}</div>}
+      {success && <div style={{ background: 'rgba(16,185,129,0.15)', borderRadius: 8, padding: '12px 16px', color: '#10b981', fontSize: 13 }}>{success}</div>}
 
       {/* ── Account ── */}
       <div style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#081F5C', marginBottom: 2 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>
               {fullName ?? user.email}
             </h2>
-            <p style={{ fontSize: 13, color: '#888' }}>{user.email}</p>
+            <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)' }}>{user.email}</p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
             <StatusPill active={isActive} />
-            <span style={{ fontSize: 11, color: '#aaa' }}>
+            <span style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)' }}>
               {user.role} · Joined {user.created_at ? new Date(user.created_at).toLocaleDateString('es-CO') : '—'}
             </span>
           </div>
@@ -146,8 +146,8 @@ export function UserDetailClient({ user, privyToken }: UserDetailClientProps) {
           </div>
           {/* Social */}
           {(profile.instagram || profile.twitter || profile.linkedin) && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f0ece4' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#aaa', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>Social</div>
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(186,214,235,0.08)' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(186,214,235,0.4)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>Social</div>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                 {profile.instagram && (
                   <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={socialLink}>
@@ -192,7 +192,7 @@ export function UserDetailClient({ user, privyToken }: UserDetailClientProps) {
 
         {/* Review actions — only show if there are docs and not yet verified */}
         {(profile?.id_doc_url || profile?.rut_url) && rutStatus !== 'VERIFICADO' && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #f0ece4' }}>
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(186,214,235,0.08)' }}>
             {showRejectInput ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <label style={labelStyle}>Rejection reason (shown to user)</label>
@@ -201,7 +201,7 @@ export function UserDetailClient({ user, privyToken }: UserDetailClientProps) {
                   onChange={(e) => setRejectNote(e.target.value)}
                   placeholder="e.g. RUT is expired. Please upload a document issued within the last month."
                   rows={3}
-                  style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+                  style={{ ...inputStyle, resize: 'vertical' as const, fontFamily: 'inherit' }}
                 />
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
@@ -238,7 +238,7 @@ export function UserDetailClient({ user, privyToken }: UserDetailClientProps) {
         )}
 
         {!profile?.id_doc_url && !profile?.rut_url && (
-          <p style={{ fontSize: 13, color: '#aaa', marginTop: 8 }}>No documents uploaded yet.</p>
+          <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.4)', marginTop: 8 }}>No documents uploaded yet.</p>
         )}
       </div>
     </div>
@@ -248,7 +248,7 @@ export function UserDetailClient({ user, privyToken }: UserDetailClientProps) {
 // ── Small components ──
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 style={{ fontSize: 13, fontWeight: 700, color: '#081F5C', margin: 0, letterSpacing: '0.3px' }}>{children}</h3>
+  return <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)', margin: 0, letterSpacing: '0.3px' }}>{children}</h3>
 }
 
 function StatusPill({ active }: { active: boolean }) {
@@ -266,8 +266,8 @@ function StatusPill({ active }: { active: boolean }) {
 function InfoField({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 600, color: '#aaa', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 14, color: value ? '#081F5C' : '#ccc', fontStyle: value ? 'normal' : 'italic' }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(186,214,235,0.4)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 14, color: value ? 'rgba(255,255,255,0.9)' : 'rgba(186,214,235,0.3)', fontStyle: value ? 'normal' : 'italic' }}>
         {value ?? 'Not provided'}
       </div>
     </div>
@@ -276,33 +276,33 @@ function InfoField({ label, value }: { label: string; value: string | null | und
 
 function DocRow({ label, url }: { label: string; url: string | null }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f8f6f2', borderRadius: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.05)', borderRadius: 8, border: '1px solid rgba(186,214,235,0.1)' }}>
       <span style={{ fontSize: 16 }}>📄</span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{label}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{label}</div>
         {url
-          ? <div style={{ fontSize: 11, color: '#888', marginTop: 1 }}>Uploaded</div>
-          : <div style={{ fontSize: 11, color: '#ccc', marginTop: 1 }}>Not uploaded</div>}
+          ? <div style={{ fontSize: 11, color: 'rgba(186,214,235,0.5)', marginTop: 1 }}>Uploaded</div>
+          : <div style={{ fontSize: 11, color: 'rgba(186,214,235,0.3)', marginTop: 1 }}>Not uploaded</div>}
       </div>
       {url && (
         <a href={url} target="_blank" rel="noopener noreferrer" style={{
-          fontSize: 12, fontWeight: 600, color: '#334EAC',
-          background: '#f0f4ff', border: '1px solid #c7d2fe',
+          fontSize: 12, fontWeight: 600, color: '#BAD6EB',
+          background: 'rgba(51,78,172,0.2)', border: '1px solid rgba(186,214,235,0.2)',
           borderRadius: 6, padding: '5px 12px', textDecoration: 'none',
         }}>
           View →
         </a>
       )}
       {!url && (
-        <span style={{ fontSize: 11, color: '#e5e7eb', fontWeight: 600 }}>—</span>
+        <span style={{ fontSize: 11, color: 'rgba(186,214,235,0.3)', fontWeight: 600 }}>—</span>
       )}
     </div>
   )
 }
 
-const cardStyle: React.CSSProperties = { background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', padding: 24 }
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid #e5e7eb', fontSize: 13, color: '#081F5C', background: 'white', outline: 'none', boxSizing: 'border-box' }
+const cardStyle: React.CSSProperties = { background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', padding: 24 }
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(186,214,235,0.7)', marginBottom: 4 }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid rgba(186,214,235,0.2)', fontSize: 13, color: 'white', background: 'rgba(255,255,255,0.07)', outline: 'none', boxSizing: 'border-box' }
 const actionBtn: React.CSSProperties = { color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }
-const ghostBtn: React.CSSProperties = { padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: 'white', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }
-const socialLink: React.CSSProperties = { fontSize: 13, color: '#334EAC', textDecoration: 'none', fontWeight: 500 }
+const ghostBtn: React.CSSProperties = { padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(186,214,235,0.2)', background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 600, color: 'rgba(186,214,235,0.7)', cursor: 'pointer' }
+const socialLink: React.CSSProperties = { fontSize: 13, color: '#BAD6EB', textDecoration: 'none', fontWeight: 500 }

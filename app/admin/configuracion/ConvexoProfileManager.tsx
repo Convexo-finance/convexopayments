@@ -32,8 +32,8 @@ export function ConvexoProfileManager({ privyToken, initialAccounts }: ConvexoPr
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#081F5C' }}>Convexo Receiving Accounts</h2>
-          <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Convexo Receiving Accounts</h2>
+          <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)', marginTop: 4 }}>
             Bank accounts and crypto wallets where users send funds. Shown to users during payment.
           </p>
         </div>
@@ -47,7 +47,7 @@ export function ConvexoProfileManager({ privyToken, initialAccounts }: ConvexoPr
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {accounts.length === 0 ? (
-          <p style={{ color: '#aaa', fontSize: 14, padding: '24px 0' }}>No Convexo accounts configured yet.</p>
+          <p style={{ color: 'rgba(186,214,235,0.4)', fontSize: 14, padding: '24px 0' }}>No Convexo accounts configured yet.</p>
         ) : (
           accounts.map((a) => (
             <ConvexoAccountCard key={a.id} account={a} privyToken={privyToken} onUpdate={reload} />

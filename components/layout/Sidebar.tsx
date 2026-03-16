@@ -101,7 +101,7 @@ export function Sidebar({ isAdmin = false, nav }: SidebarProps) {
               padding: '16px 20px',
               borderBottom: '1px solid rgba(255,255,255,0.08)',
             }}>
-              <Image src="/logo.png" alt="Convexo" width={28} height={28} style={{ borderRadius: 6 }} />
+              <Image src="/logo.png" alt="Convexo" width={28} height={28} style={{ borderRadius: 6, objectFit: 'contain' }} />
               <span style={{ color: 'white', fontSize: 14, fontWeight: 700 }}>Convexo Payments</span>
               <button
                 onClick={() => setMenuOpen(false)}
@@ -261,7 +261,7 @@ export function Sidebar({ isAdmin = false, nav }: SidebarProps) {
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <Image src="/logo.png" alt="Convexo Payments" width={36} height={36} style={{ borderRadius: 8, flexShrink: 0 }} />
+        <Image src="/logo.png" alt="Convexo Payments" width={36} height={36} style={{ borderRadius: 8, flexShrink: 0, objectFit: 'contain' }} />
         <div>
           <div style={{ color: 'white', fontSize: 14, fontWeight: 700, letterSpacing: '-0.3px' }}>Convexo Payments</div>
           <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{isAdmin ? 'Admin Panel' : 'convexo.xyz'}</div>

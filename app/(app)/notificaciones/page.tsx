@@ -6,7 +6,7 @@ import { getNotifications } from '@/lib/actions/notifications'
 export default async function NotificacionesPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const { data: notifications } = await getNotifications(privyToken).catch(() => ({
     data: [],

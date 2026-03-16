@@ -33,22 +33,22 @@ export function PayOrderStepper({ status }: { status: string }) {
         return (
           <div key={step.status} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
             {i > 0 && (
-              <div style={{ position: 'absolute', left: 0, top: 10, width: '50%', height: 2, background: done || active ? '#334EAC' : '#e5e7eb' }} />
+              <div style={{ position: 'absolute', left: 0, top: 10, width: '50%', height: 2, background: done || active ? '#334EAC' : 'rgba(186,214,235,0.15)' }} />
             )}
             {i < PAY_STEPS.length - 1 && (
-              <div style={{ position: 'absolute', right: 0, top: 10, width: '50%', height: 2, background: done ? '#334EAC' : '#e5e7eb' }} />
+              <div style={{ position: 'absolute', right: 0, top: 10, width: '50%', height: 2, background: done ? '#334EAC' : 'rgba(186,214,235,0.15)' }} />
             )}
             <div style={{
               width: 22, height: 22, borderRadius: '50%', zIndex: 1,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: done ? '#334EAC' : active ? '#BAD6EB' : '#f3f4f6',
-              border: `2px solid ${done || active ? '#334EAC' : '#e5e7eb'}`,
+              background: done ? '#334EAC' : active ? '#BAD6EB' : 'rgba(255,255,255,0.08)',
+              border: `2px solid ${done || active ? '#334EAC' : 'rgba(186,214,235,0.2)'}`,
               fontSize: 10, fontWeight: 700,
-              color: done ? 'white' : active ? '#081F5C' : '#9ca3af',
+              color: done ? 'white' : active ? '#02001A' : 'rgba(186,214,235,0.4)',
             }}>
               {done ? '✓' : i + 1}
             </div>
-            <p style={{ fontSize: 9, marginTop: 5, textAlign: 'center', fontWeight: active ? 700 : 400, color: active ? '#081F5C' : done ? '#334EAC' : '#9ca3af' }}>
+            <p style={{ fontSize: 9, marginTop: 5, textAlign: 'center', fontWeight: active ? 700 : 400, color: active ? '#BAD6EB' : done ? '#334EAC' : 'rgba(186,214,235,0.4)' }}>
               {step.label}
             </p>
           </div>
@@ -68,7 +68,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function StatusTimeline({ history }: { history: HistoryEntry[] }) {
   if (!history || history.length === 0) return (
-    <p style={{ fontSize: 12, color: '#9ca3af' }}>Sin historial registrado.</p>
+    <p style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)' }}>Sin historial registrado.</p>
   )
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -76,8 +76,8 @@ export function StatusTimeline({ history }: { history: HistoryEntry[] }) {
         <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#334EAC', marginTop: 4, flexShrink: 0 }} />
           <div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#081F5C' }}>{STATUS_LABELS[h.status] ?? h.status}</span>
-            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{STATUS_LABELS[h.status] ?? h.status}</span>
+            <div style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)', marginTop: 2 }}>
               {new Date(h.changed_at).toLocaleString()}
             </div>
           </div>

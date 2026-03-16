@@ -86,7 +86,7 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
   }
 
   if (!localOrders || localOrders.length === 0) {
-    return <p style={{ color: '#aaa', fontSize: 14, padding: '24px 0' }}>No orders.</p>
+    return <p style={{ color: 'rgba(186,214,235,0.4)', fontSize: 14, padding: '24px 0' }}>No orders.</p>
   }
 
   return (
@@ -97,21 +97,21 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
         const pendingStatus = selectedStatus[o.id]
 
         return (
-          <div key={o.id} style={{ background: 'white', borderRadius: 12, border: '1px solid #e8e4dc', padding: 20 }}>
+          <div key={o.id} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', padding: 20 }}>
             {/* Header row */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#081F5C' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
                   {o.users?.email ?? '—'}
                 </div>
-                <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)', marginTop: 2 }}>
                   {entityName}
-                  {o.reference && <span style={{ marginLeft: 8, color: '#aaa' }}>· {o.reference}</span>}
+                  {o.reference && <span style={{ marginLeft: 8, color: 'rgba(186,214,235,0.35)' }}>· {o.reference}</span>}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <StatusBadge status={o.status} />
-                <span style={{ fontSize: 15, fontWeight: 800, color: '#081F5C' }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.9)' }}>
                   {Number(o.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {o.currency}
                 </span>
               </div>
@@ -119,11 +119,11 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
 
             {/* Links row */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, color: '#aaa' }}>
+              <span style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)' }}>
                 {o.created_at ? new Date(o.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
               </span>
               {o.txn_hash && (
-                <span style={{ fontSize: 12, color: '#6d28d9', fontWeight: 600, fontFamily: 'monospace' }}
+                <span style={{ fontSize: 12, color: '#BAD6EB', fontWeight: 600, fontFamily: 'monospace' }}
                   title={o.txn_hash}>
                   TxID: {o.txn_hash.slice(0, 16)}…
                 </span>
@@ -133,7 +133,7 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
                   href={o.invoice_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ fontSize: 12, color: '#334EAC', fontWeight: 600, textDecoration: 'none' }}
+                  style={{ fontSize: 12, color: '#BAD6EB', fontWeight: 600, textDecoration: 'none' }}
                 >
                   📄 View Invoice →
                 </a>
@@ -157,7 +157,7 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
 
             {/* Actions */}
             {nextOptions.length > 0 && (
-              <div style={{ borderTop: '1px solid #f0ece4', paddingTop: 14 }}>
+              <div style={{ borderTop: '1px solid rgba(186,214,235,0.08)', paddingTop: 14 }}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                   <select
                     value={pendingStatus ?? ''}
@@ -201,20 +201,20 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
                 {/* Proof upload — only when transitioning to PAGADO */}
                 {pendingStatus === 'PAGADO' && (
                   <div style={{ marginTop: 12 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 6 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(186,214,235,0.7)', marginBottom: 6 }}>
                       Upload proof of payment <span style={{ color: '#ef4444' }}>*</span>
                     </p>
                     {proofUrls[o.id] ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ background: '#d1fae5', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: '#065f46', fontWeight: 600 }}>
+                        <div style={{ background: 'rgba(16,185,129,0.15)', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: '#10b981', fontWeight: 600 }}>
                           ✓ Proof uploaded
                         </div>
-                        <a href={proofUrls[o.id]} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#334EAC' }}>
+                        <a href={proofUrls[o.id]} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#BAD6EB' }}>
                           View →
                         </a>
                         <button
                           onClick={() => setProofUrls((p) => { const next = { ...p }; delete next[o.id]; return next })}
-                          style={{ fontSize: 12, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}
+                          style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}
                         >
                           Replace
                         </button>
@@ -230,8 +230,8 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
                       <label style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '8px 14px', borderRadius: 8,
-                        border: '2px dashed #d1d5db', background: '#fafafa',
-                        fontSize: 13, color: '#555', cursor: uploadingProof === o.id ? 'wait' : 'pointer',
+                        border: '2px dashed rgba(186,214,235,0.25)', background: 'rgba(255,255,255,0.04)',
+                        fontSize: 13, color: 'rgba(186,214,235,0.7)', cursor: uploadingProof === o.id ? 'wait' : 'pointer',
                       }}>
                         {uploadingProof === o.id ? 'Uploading...' : '📎 Click to upload proof (PDF, JPG, PNG)'}
                         <input
@@ -256,8 +256,8 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
             )}
 
             {nextOptions.length === 0 && (
-              <div style={{ borderTop: '1px solid #f0ece4', paddingTop: 10 }}>
-                <span style={{ color: '#aaa', fontSize: 12 }}>No further actions available for this order.</span>
+              <div style={{ borderTop: '1px solid rgba(186,214,235,0.08)', paddingTop: 10 }}>
+                <span style={{ color: 'rgba(186,214,235,0.4)', fontSize: 12 }}>No further actions available for this order.</span>
               </div>
             )}
           </div>
@@ -267,5 +267,5 @@ export function AdminOrderTable({ orders, privyToken }: AdminOrderTableProps) {
   )
 }
 
-const selectStyle: React.CSSProperties = { padding: '7px 10px', borderRadius: 7, border: '1px solid #e5e7eb', fontSize: 13, color: '#081F5C', background: 'white', minWidth: 180 }
+const selectStyle: React.CSSProperties = { padding: '7px 10px', borderRadius: 7, border: '1px solid rgba(186,214,235,0.2)', fontSize: 13, color: 'white', background: 'rgba(255,255,255,0.07)', minWidth: 180 }
 const actionBtnStyle: React.CSSProperties = { background: 'linear-gradient(135deg, #334EAC, #401777)', color: 'white', border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }

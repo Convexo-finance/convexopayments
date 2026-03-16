@@ -8,7 +8,7 @@ import { getSessionUser } from '@/lib/actions/auth'
 export default async function PerfilPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const [profile, user] = await Promise.all([
     getProfile(privyToken).catch(() => null),

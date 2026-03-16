@@ -8,7 +8,7 @@ import { getClients } from '@/lib/actions/entities'
 export default async function ClientesPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const { data: clients, total } = await getClients(privyToken).catch(() => ({
     data: [],

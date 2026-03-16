@@ -8,10 +8,10 @@ import { PaymentMethodsClient } from './PaymentMethodsClient'
 export default async function MetodosPagoPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const user = await getSessionUser(privyToken).catch(() => null)
-  if (!user) redirect('/login')
+  if (!user) redirect('/')
 
   const profiles = await getPaymentProfiles(privyToken, 'USER_OWN', user.id).catch(() => [])
 

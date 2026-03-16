@@ -7,7 +7,7 @@ import { ConvexoProfileManager } from './ConvexoProfileManager'
 export default async function AdminConfiguracionPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const accounts = await adminGetConvexoAccounts(privyToken).catch(() => [])
 
