@@ -9,13 +9,18 @@ export default async function PayOrderDetailPage({ params }: { params: Promise<{
   const { id } = await params
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
-  if (!privyToken) redirect('/login')
+  if (!privyToken) redirect('/')
 
   const [order, convexoAccounts] = await Promise.all([
     getOrderById(privyToken, id).catch(() => null),
     getConvexoAccounts(privyToken).catch(() => []),
   ])
   if (!order || order.type !== 'PAY') redirect('/pagar')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const paymentProfile = Array.isArray((order as any).payment_profiles)
+    ? (order as any).payment_profiles[0] ?? null
+    : (order as any).payment_profiles ?? null
 
   return (
     <div>
@@ -26,6 +31,7 @@ export default async function PayOrderDetailPage({ params }: { params: Promise<{
           privyToken={privyToken}
           backHref="/pagar"
           convexoAccounts={(convexoAccounts ?? []) as unknown as Parameters<typeof OrderDetailClient>[0]['convexoAccounts']}
+          paymentProfile={paymentProfile}
         />
       </div>
     </div>

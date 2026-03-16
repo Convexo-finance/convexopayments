@@ -11,6 +11,20 @@ const ADMIN_VALID_TRANSITIONS: Record<string, string[]> = {
   PROCESANDO: ['PAYED', 'RECHAZADO'],
 }
 
+export async function uploadAdminProof(privyToken: string, file: File) {
+  const admin = await requireAdmin(privyToken)
+  const supabase = await createServiceClient()
+  const ext = file.name.split('.').pop() || 'pdf'
+  const path = `admin-proofs/${admin.id}/${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('documents').upload(path, file, {
+    upsert: true,
+    contentType: file.type || 'application/pdf',
+  })
+  if (error) throw error
+  const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
+  return publicUrl
+}
+
 export async function adminUpdateOrderStatus(
   privyToken: string,
   orderId: string,

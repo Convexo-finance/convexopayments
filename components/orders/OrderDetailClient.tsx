@@ -19,6 +19,13 @@ interface ConvexoAccount {
   details: Record<string, string>
 }
 
+interface PaymentProfile {
+  id: string
+  method: string
+  label: string | null
+  details: Record<string, string>
+}
+
 interface Order {
   id: string
   type: string
@@ -47,6 +54,7 @@ interface OrderDetailClientProps {
   privyToken: string
   backHref: string
   convexoAccounts?: ConvexoAccount[]
+  paymentProfile?: PaymentProfile | null
 }
 
 const CANCELLABLE = ['DRAFT', 'OPENED']
@@ -73,7 +81,7 @@ function getStepIndex(status: string) {
   return map[status] ?? 0
 }
 
-export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts = [] }: OrderDetailClientProps) {
+export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts = [], paymentProfile }: OrderDetailClientProps) {
   // Filter to accounts available for PAY orders
   const paymentAccounts = convexoAccounts.filter(
     (a) => a.details.direction === 'PAYMENTS' || a.details.direction === 'ALL' || !a.details.direction
@@ -380,6 +388,48 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
           </div>
         )}
 
+        {/* Supplier payment method — how Convexo will pay them */}
+        {paymentProfile && (
+          <div style={{ background: 'rgba(186,214,235,0.04)', border: '1px solid rgba(186,214,235,0.1)', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(186,214,235,0.08)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)' }}>
+              Supplier payment method
+            </div>
+            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ background: 'rgba(51,78,172,0.2)', color: '#BAD6EB', padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+                  {paymentProfile.method}
+                </span>
+                {paymentProfile.label && (
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{paymentProfile.label}</span>
+                )}
+              </div>
+              {paymentProfile.method === 'BANK' && (
+                <>
+                  {paymentProfile.details.bank_name && <ProfileRow label="Bank" value={paymentProfile.details.bank_name} />}
+                  {paymentProfile.details.account_name && <ProfileRow label="Account holder" value={paymentProfile.details.account_name} />}
+                  {paymentProfile.details.account_number && <ProfileRow label="Account / IBAN" value={paymentProfile.details.account_number} />}
+                  {paymentProfile.details.routing_number && <ProfileRow label="SWIFT / Routing" value={paymentProfile.details.routing_number} />}
+                  {paymentProfile.details.currency && <ProfileRow label="Currency" value={paymentProfile.details.currency} />}
+                  {paymentProfile.details.country && <ProfileRow label="Country" value={paymentProfile.details.country} />}
+                </>
+              )}
+              {paymentProfile.method === 'CRYPTO' && (
+                <>
+                  {paymentProfile.details.network && <ProfileRow label="Network" value={paymentProfile.details.network} />}
+                  {paymentProfile.details.token && <ProfileRow label="Token" value={paymentProfile.details.token} />}
+                  {paymentProfile.details.address && <ProfileRow label="Address" value={paymentProfile.details.address} mono />}
+                </>
+              )}
+              {paymentProfile.method === 'WECHAT' && paymentProfile.details.wechat_id && (
+                <ProfileRow label="WeChat ID" value={paymentProfile.details.wechat_id} />
+              )}
+              {paymentProfile.method === 'PAYPAL' && paymentProfile.details.email && (
+                <ProfileRow label="PayPal email" value={paymentProfile.details.email} />
+              )}
+            </div>
+          </div>
+        )}
+
         {/* COLLECT order amount */}
         {order.type === 'COLLECT' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px 24px', marginBottom: 20 }}>
@@ -657,6 +707,15 @@ function Field({ label, value }: { label: string; value: string }) {
     <div>
       <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(186,214,235,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{label}</p>
       <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{value}</p>
+    </div>
+  )
+}
+
+function ProfileRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+      <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', textAlign: 'right', wordBreak: 'break-all', fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</span>
     </div>
   )
 }

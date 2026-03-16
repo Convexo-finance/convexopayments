@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { FileUpload } from '@/components/ui/FileUpload'
 
 interface PayOrderActionsProps {
   orderId: string
@@ -27,7 +28,7 @@ export function PayOrderActions({ orderId, status, privyToken }: PayOrderActions
 
   if (TERMINAL.includes(status)) {
     return (
-      <p style={{ fontSize: 13, color: '#9ca3af' }}>Esta orden está en estado final. No hay acciones disponibles.</p>
+      <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.4)' }}>Esta orden está en estado final. No hay acciones disponibles.</p>
     )
   }
 
@@ -62,18 +63,27 @@ export function PayOrderActions({ orderId, status, privyToken }: PayOrderActions
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {status === 'PROCESANDO' && (
         <div>
-          <label style={labelStyle}>URL de prueba de pago <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span></label>
-          <input
-            placeholder="https://..."
-            value={proofUrl}
-            onChange={(e) => setProofUrl(e.target.value)}
-            style={inputStyle}
+          <label style={labelStyle}>Comprobante de pago <span style={{ color: '#ef4444' }}>*</span></label>
+          <FileUpload
+            label="Subir comprobante (PDF, JPG, PNG)"
+            accept=".pdf,.jpg,.jpeg,.png"
+            currentUrl={proofUrl || undefined}
+            onUpload={async (file) => {
+              const { uploadAdminProof } = await import('@/lib/actions/admin')
+              const url = await uploadAdminProof(privyToken, file)
+              setProofUrl(url)
+              return url
+            }}
           />
         </div>
       )}
 
       {next && (
-        <button onClick={handleAdvance} disabled={loading} style={primaryBtn}>
+        <button
+          onClick={handleAdvance}
+          disabled={loading || (status === 'PROCESANDO' && !proofUrl)}
+          style={{ ...primaryBtn, opacity: (status === 'PROCESANDO' && !proofUrl) ? 0.5 : 1, cursor: (status === 'PROCESANDO' && !proofUrl) ? 'not-allowed' : 'pointer' }}
+        >
           {loading ? 'Procesando...' : next.label}
         </button>
       )}
@@ -108,9 +118,9 @@ export function PayOrderActions({ orderId, status, privyToken }: PayOrderActions
   )
 }
 
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 13, color: '#081F5C', outline: 'none', boxSizing: 'border-box' }
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(186,214,235,0.7)', marginBottom: 4 }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(186,214,235,0.2)', fontSize: 13, color: 'white', background: 'rgba(255,255,255,0.07)', outline: 'none', boxSizing: 'border-box' }
 const primaryBtn: React.CSSProperties = { background: 'linear-gradient(135deg, #334EAC, #401777)', color: 'white', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' }
 const dangerBtn: React.CSSProperties = { background: '#ef4444', color: 'white', border: 'none', borderRadius: 8, padding: '9px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flex: 1 }
-const dangerOutlineBtn: React.CSSProperties = { background: 'white', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '9px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' }
-const secondaryBtn: React.CSSProperties = { background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 14px', fontSize: 13, cursor: 'pointer', flex: 1 }
+const dangerOutlineBtn: React.CSSProperties = { background: 'transparent', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '9px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%' }
+const secondaryBtn: React.CSSProperties = { background: 'rgba(255,255,255,0.06)', color: 'rgba(186,214,235,0.7)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 8, padding: '9px 14px', fontSize: 13, cursor: 'pointer', flex: 1 }
