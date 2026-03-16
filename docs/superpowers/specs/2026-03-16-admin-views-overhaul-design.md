@@ -180,7 +180,8 @@ Follows project conventions (CLAUDE.md):
 
 ### New Server Actions Needed
 - `adminGetOrderById(privyToken, orderId)` — full order with entity + payment profile join
-- `adminGetEntityById(privyToken, id, type)` — entity + profiles + orders
+- `adminGetSupplierById(privyToken, id)` — supplier + payment profiles + orders
+- `adminGetClientById(privyToken, id)` — client + payment profiles + orders
 - OTC join: extend existing wallet_requests query to include `profiles` join for user contact info
 
 ---
