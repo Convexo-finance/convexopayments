@@ -9,7 +9,7 @@ const TOKENS = ['USDC', 'USDT'] as const
 type Token = typeof TOKENS[number]
 type ModalType = 'deposit' | 'withdraw' | null
 type DepositChain = 'ethereum' | 'solana'
-type WithdrawChain = 'ethereum' | 'tron' | 'solana'
+type WithdrawChain = 'ethereum' | 'solana'
 
 interface OwnProfile { id: string; method: string; label: string | null }
 
@@ -185,7 +185,7 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
             <div>
               <label style={labelStyle}>Network</label>
               <div style={{ display: 'flex', gap: 8 }}>
-                {(['ethereum', 'tron', 'solana'] as WithdrawChain[]).map((chain) => (
+                {(['ethereum', 'solana'] as WithdrawChain[]).map((chain) => (
                   <button
                     key={chain}
                     type="button"
@@ -197,7 +197,7 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
                       textTransform: 'capitalize',
                     }}
                   >
-                    {chain === 'ethereum' ? 'Ethereum' : chain === 'tron' ? 'Tron' : 'Solana'}
+                    {chain === 'ethereum' ? 'Ethereum' : 'Solana'}
                   </button>
                 ))}
               </div>
@@ -221,7 +221,7 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
               <label style={labelStyle}>Destination wallet address</label>
               <input
                 style={inputStyle}
-                placeholder={withdrawChain === 'ethereum' ? '0x...' : withdrawChain === 'tron' ? 'T...' : 'Base58 address...'}
+                placeholder={withdrawChain === 'ethereum' ? '0x...' : 'Base58 address...'}
                 value={destAddress}
                 onChange={(e) => setDestAddress(e.target.value)}
               />
