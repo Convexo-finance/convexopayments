@@ -376,6 +376,7 @@ export type Database = {
           phone: string | null
           phone_country_code: string | null
           postal_code: string | null
+          proof_of_address_url: string | null
           rut_admin_note: string | null
           rut_status: string | null
           rut_url: string | null
@@ -385,6 +386,7 @@ export type Database = {
           updated_at: string | null
           usdc_balance: number | null
           user_id: string | null
+          website_url: string | null
         }
         Insert: {
           address?: string | null
@@ -403,6 +405,7 @@ export type Database = {
           phone?: string | null
           phone_country_code?: string | null
           postal_code?: string | null
+          proof_of_address_url?: string | null
           rut_admin_note?: string | null
           rut_status?: string | null
           rut_url?: string | null
@@ -412,6 +415,7 @@ export type Database = {
           updated_at?: string | null
           usdc_balance?: number | null
           user_id?: string | null
+          website_url?: string | null
         }
         Update: {
           address?: string | null
@@ -430,6 +434,7 @@ export type Database = {
           phone?: string | null
           phone_country_code?: string | null
           postal_code?: string | null
+          proof_of_address_url?: string | null
           rut_admin_note?: string | null
           rut_status?: string | null
           rut_url?: string | null
@@ -439,6 +444,7 @@ export type Database = {
           updated_at?: string | null
           usdc_balance?: number | null
           user_id?: string | null
+          website_url?: string | null
         }
         Relationships: [
           {

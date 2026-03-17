@@ -18,9 +18,11 @@ export type ProfileInput = {
   country_code?: string
   id_doc_url?: string
   rut_url?: string
+  proof_of_address_url?: string
   instagram?: string
   twitter?: string
   linkedin?: string
+  website_url?: string
 }
 
 export async function upsertProfile(privyToken: string, data: ProfileInput) {
@@ -126,4 +128,35 @@ export async function requestVerification(privyToken: string) {
       }))
     )
   }
+}
+
+/**
+ * Called from the onboarding wizard after collecting name + phone.
+ * Creates the profile row so AppGuard stops redirecting to /onboarding.
+ */
+export async function completeOnboarding(
+  privyToken: string,
+  data: { first_name: string; last_name: string; phone_country_code: string; phone: string }
+) {
+  return upsertProfile(privyToken, {
+    first_name: data.first_name,
+    last_name: data.last_name,
+    phone_country_code: data.phone_country_code,
+    phone: data.phone,
+  })
+}
+
+export async function uploadProofOfAddress(privyToken: string, file: File) {
+  const user = await getSessionUser(privyToken)
+  if (!user) throw new Error('NOT_FOUND')
+  const supabase = await createClient(privyToken)
+  const ext = file.name.split('.').pop() || 'pdf'
+  const path = `proof_of_address/${user.id}/${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('documents').upload(path, file, {
+    upsert: true,
+    contentType: file.type || 'application/pdf',
+  })
+  if (error) throw error
+  const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
+  return publicUrl
 }

@@ -12,7 +12,6 @@ const USER_NAV = [
     group: 'Overview',
     items: [
       { label: 'Dashboard',       href: '/dashboard' },
-      { label: 'Notificaciones',  href: '/notificaciones' },
       { label: 'Perfil',          href: '/perfil' },
       { label: 'Wallet',          href: '/cuenta' },
       { label: 'Métodos de Pago', href: '/metodos-pago' },
@@ -36,8 +35,9 @@ const USER_NAV = [
   {
     group: 'Settings',
     items: [
-      { label: 'Authentication', href: '/settings/auth' },
-      { label: 'Seguridad',      href: '/settings/security' },
+      { label: 'Notificaciones',  href: '/notificaciones' },
+      { label: 'Authentication',  href: '/settings/auth' },
+      { label: 'Seguridad',       href: '/settings/security' },
     ],
   },
 ]

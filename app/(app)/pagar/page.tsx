@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Topbar } from '@/components/layout/Topbar'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ActivationBanner } from '@/components/ui/ActivationBanner'
 import Link from 'next/link'
 import { getOrders } from '@/lib/actions/orders'
 import { getSessionUser } from '@/lib/actions/auth'
@@ -12,7 +13,7 @@ export default async function PagarPage() {
   if (!privyToken) redirect('/')
 
   const user = await getSessionUser(privyToken)
-  if (!user?.is_enabled) redirect('/dashboard')
+  const isEnabled = user?.is_enabled ?? false
 
   const { data: orders, total } = await getOrders(privyToken, 'PAY').catch(() => ({
     data: [],
@@ -24,9 +25,11 @@ export default async function PagarPage() {
       <Topbar
         title="Pay"
         breadcrumb={`${total} payment order${total !== 1 ? 's' : ''}`}
-        cta={{ label: '+ New Order', href: '/pagar/new' }}
+        cta={isEnabled ? { label: '+ New Order', href: '/pagar/new' } : undefined}
       />
       <div style={{ padding: 24 }} className="admin-page-pad">
+        {!isEnabled && <ActivationBanner />}
+        <div style={{ opacity: isEnabled ? 1 : 0.5, pointerEvents: isEnabled ? 'auto' : 'none' }}>
         <div className="table-scroll" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)' }}>
           {!orders || orders.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center', color: 'rgba(186,214,235,0.4)', fontSize: 14 }}>
@@ -126,6 +129,7 @@ export default async function PagarPage() {
               </tbody>
             </table>
           )}
+        </div>
         </div>
       </div>
     </div>
