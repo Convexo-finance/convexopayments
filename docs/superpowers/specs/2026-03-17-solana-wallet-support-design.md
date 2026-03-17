@@ -39,9 +39,9 @@ This causes Privy to provision a Solana embedded wallet for every user on login 
 
 Add `depositChain: 'ethereum' | 'solana'` state (defaults to `'ethereum'`).
 
-Add `useSolanaWallets` from `@privy-io/react-auth/solana` to get the Solana embedded address.
+Add `useWallets as useSolanaWallets` from `@privy-io/react-auth/solana` to get the Solana embedded address.
 
-UI change: a two-tab row above the QR:
+UI change: a two-tab row above the QR implemented as **inline pill buttons** (no shared component), consistent with the inline-styles-only pattern in the file:
 ```
 [ Ethereum ]  [ Solana ]
 ```
@@ -50,7 +50,7 @@ Switch QR, address, tags, and warning based on `depositChain`:
 - **Ethereum:** QR of EVM address, tags `"Ethereum"` + `"ERC-20"`, warning about ERC-20
 - **Solana:** QR of Solana address, tags `"Solana"` + `"SPL"`, warning about SPL
 
-If the Solana wallet is not yet provisioned, show the same loading state as for Ethereum.
+If the Solana wallet is not yet provisioned, use `!ready || !solanaAddress` as the guard (where `ready` comes from the Solana `useWallets` hook), showing the same loading banner as for Ethereum.
 
 **Withdraw modal:**
 
@@ -101,8 +101,8 @@ Exportar clave privada — Solana       [Exportar]
 
 Each row has its own loading state (`exportingEth`, `exportingSol`).
 
-Ethereum export: existing `useExportWallet` from `@privy-io/react-auth`.
-Solana export: `useExportWallet` from `@privy-io/react-auth/solana`.
+Ethereum export: existing `useExportWallet` from `@privy-io/react-auth` — call `exportWallet({ address: embeddedWallet.address })`.
+Solana export: `useExportWallet` from `@privy-io/react-auth/solana` — call `exportWallet()` with **no arguments** (Privy defaults to the wallet at index 0). Because users have at most one Solana embedded wallet (auto-created on login, `createAdditional` never used), no address picker is needed.
 
 If either wallet is not yet provisioned, that row's button is disabled with the existing loading/init message.
 
