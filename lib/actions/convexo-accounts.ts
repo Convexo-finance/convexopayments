@@ -6,6 +6,7 @@ export type ConvexoAccountInput = {
   method: string
   label?: string
   details?: Record<string, unknown>
+  directions?: string[]
   is_default?: boolean
   is_active?: boolean
   doc_url?: string

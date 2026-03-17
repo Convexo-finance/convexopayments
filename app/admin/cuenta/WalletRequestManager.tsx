@@ -11,9 +11,16 @@ interface WalletRequest {
   spread_pct: number | null
   proof_url: string | null
   admin_note: string | null
+  provider_rate: number | null
+  admin_rate: number | null
+  initial_spread: number | null
+  official_spread: number | null
+  txn_url: string | null
+  user_proof_url: string | null
+  crypto_address: string | null
   created_at: string
   paid_at: string | null
-  metadata: { cop_amount?: number; usdcop_rate?: number; spread_pct?: number } | null
+  metadata: { cop_amount?: number; usdcop_rate?: number; spread_pct?: number; destination_chain?: string; destination_wallet_source?: string } | null
   users: {
     email: string
     profiles: { first_name?: string; last_name?: string; phone?: string; phone_country_code?: string } | null
@@ -60,6 +67,7 @@ export function WalletRequestManager({ requests: initial, privyToken }: WalletRe
   const [copInputs,    setCopInputs]    = useState<Record<string, string>>({})
   const [proofInputs,  setProofInputs]  = useState<Record<string, string>>({})
   const [noteInputs,   setNoteInputs]   = useState<Record<string, string>>({})
+  const [txnUrlInputs, setTxnUrlInputs] = useState<Record<string, string>>({})
 
   const otcOrders = requests.filter(r => ['CASH_IN', 'CASH_OUT'].includes(r.type))
   const active = otcOrders.filter(r => !['LIQUIDADO', 'CANCELADO'].includes(r.status))
@@ -73,6 +81,7 @@ export function WalletRequestManager({ requests: initial, privyToken }: WalletRe
       await adminUpdateWalletRequest(privyToken, id, newStatus, {
         proofUrl:  proofInputs[id],
         adminNote: noteInputs[id],
+        txnUrl:    txnUrlInputs[id],
         ...extraOpts,
       })
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r))
@@ -194,16 +203,66 @@ export function WalletRequestManager({ requests: initial, privyToken }: WalletRe
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                   <DataRow label="Tipo">{r.type === 'CASH_IN' ? 'COMPRAR (COP → USDC)' : 'VENDER (USDC → COP)'}</DataRow>
                                   <DataRow label="Monto">{Number(r.amount).toLocaleString()} {r.currency}</DataRow>
-                                  {baseRate && <DataRow label="Tasa base">{baseRate.toLocaleString(undefined, { maximumFractionDigits: 0 })} COP/USD</DataRow>}
-                                  <DataRow label="Spread aplicado">{(spread * 100).toFixed(2)}%</DataRow>
+                                  {r.provider_rate && <DataRow label="Tasa proveedor">{Number(r.provider_rate).toLocaleString(undefined, { maximumFractionDigits: 0 })} COP/USD</DataRow>}
+                                  {r.admin_rate && <DataRow label="Tasa admin" highlight>{Number(r.admin_rate).toLocaleString(undefined, { maximumFractionDigits: 0 })} COP/USD</DataRow>}
+                                  {!r.admin_rate && baseRate && <DataRow label="Tasa base">{baseRate.toLocaleString(undefined, { maximumFractionDigits: 0 })} COP/USD</DataRow>}
+                                  <DataRow label="Spread inicial">{((r.initial_spread ?? spread) * 100).toFixed(2)}%</DataRow>
+                                  {r.official_spread != null && <DataRow label="Spread oficial">{(r.official_spread * 100).toFixed(2)}%</DataRow>}
                                   {finalRate && <DataRow label="Tasa final" highlight>{finalRate.toLocaleString(undefined, { maximumFractionDigits: 0 })} COP/USD</DataRow>}
                                   {cop && <DataRow label="Equivalente COP" bold>{`$${Number(cop).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</DataRow>}
+                                  {r.type === 'CASH_IN' && r.crypto_address && (
+                                    <div style={{ background: 'rgba(51,78,172,0.12)', border: '1px solid rgba(186,214,235,0.25)', borderRadius: 10, padding: '12px 14px', marginTop: 4 }}>
+                                      <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(186,214,235,0.5)', margin: '0 0 6px' }}>
+                                        Enviar cripto al usuario →
+                                        {r.metadata?.destination_chain && (
+                                          <span style={{ marginLeft: 6, background: 'rgba(51,78,172,0.3)', color: '#BAD6EB', padding: '1px 7px', borderRadius: 99, fontWeight: 700 }}>
+                                            {r.metadata.destination_chain}
+                                          </span>
+                                        )}
+                                        {r.metadata?.destination_wallet_source === 'embedded' && (
+                                          <span style={{ marginLeft: 6, background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '1px 7px', borderRadius: 99, fontWeight: 700 }}>
+                                            Wallet Privy
+                                          </span>
+                                        )}
+                                      </p>
+                                      <p style={{ fontFamily: 'monospace', fontSize: 12, color: '#BAD6EB', margin: '0 0 10px', wordBreak: 'break-all' }}>
+                                        {r.crypto_address}
+                                      </p>
+                                      {/* QR */}
+                                      <div style={{ background: 'white', borderRadius: 8, padding: 8, display: 'inline-block' }}>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(r.crypto_address)}&bgcolor=FFFFFF&color=02001A&margin=4`}
+                                          alt="Wallet QR" width={120} height={120}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                  {r.type === 'CASH_OUT' && r.crypto_address && (
+                                    <DataRow label="Dirección cripto (usuario)">{r.crypto_address}</DataRow>
+                                  )}
                                   {r.paid_at && <DataRow label="Fecha de pago">{new Date(r.paid_at).toLocaleString()}</DataRow>}
+                                  {r.user_proof_url && (
+                                    <div style={{ marginTop: 4 }}>
+                                      <a href={r.user_proof_url} target="_blank" rel="noopener noreferrer"
+                                        style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, textDecoration: 'none' }}>
+                                        📄 Comprobante del usuario →
+                                      </a>
+                                    </div>
+                                  )}
+                                  {r.txn_url && (
+                                    <div style={{ marginTop: 4 }}>
+                                      <a href={r.txn_url} target="_blank" rel="noopener noreferrer"
+                                        style={{ fontSize: 12, color: '#BAD6EB', fontWeight: 600, textDecoration: 'none' }}>
+                                        🔗 TXN on-chain →
+                                      </a>
+                                    </div>
+                                  )}
                                   {r.proof_url && (
                                     <div style={{ marginTop: 4 }}>
                                       <a href={r.proof_url} target="_blank" rel="noopener noreferrer"
                                         style={{ fontSize: 12, color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>
-                                        ✓ Ver comprobante →
+                                        ✓ Comprobante admin →
                                       </a>
                                     </div>
                                   )}
@@ -263,8 +322,22 @@ export function WalletRequestManager({ requests: initial, privyToken }: WalletRe
 
                                   {r.status === 'REVISION' && (
                                     <>
+                                      {r.user_proof_url && (
+                                        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f59e0b' }}>
+                                          📄 El usuario adjuntó un{' '}
+                                          <a href={r.user_proof_url} target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b', fontWeight: 700 }}>comprobante de pago</a>
+                                        </div>
+                                      )}
+                                      {r.txn_url && r.type === 'CASH_OUT' && (
+                                        <div style={{ background: 'rgba(186,214,235,0.08)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#BAD6EB' }}>
+                                          🔗 TXN del usuario:{' '}
+                                          <a href={r.txn_url} target="_blank" rel="noopener noreferrer" style={{ color: '#BAD6EB', fontWeight: 700 }}>Ver transacción</a>
+                                        </div>
+                                      )}
                                       <div>
-                                        <label style={innerLabelStyle}>URL comprobante</label>
+                                        <label style={innerLabelStyle}>
+                                          {r.type === 'CASH_IN' ? 'URL comprobante pago admin' : 'URL TXN crypto enviado al usuario'}
+                                        </label>
                                         <input
                                           placeholder="https://..."
                                           value={proofInputs[r.id] ?? ''}
@@ -272,6 +345,17 @@ export function WalletRequestManager({ requests: initial, privyToken }: WalletRe
                                           style={inputStyle}
                                         />
                                       </div>
+                                      {r.type === 'CASH_IN' && (
+                                        <div>
+                                          <label style={innerLabelStyle}>URL TXN crypto (enviado al usuario)</label>
+                                          <input
+                                            placeholder="https://etherscan.io/tx/..."
+                                            value={txnUrlInputs[r.id] ?? ''}
+                                            onChange={e => setTxnUrlInputs(p => ({ ...p, [r.id]: e.target.value }))}
+                                            style={inputStyle}
+                                          />
+                                        </div>
+                                      )}
                                       <div>
                                         <label style={innerLabelStyle}>Nota admin</label>
                                         <input

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Image from 'next/image'
-import { useWallets, useExportWallet } from '@privy-io/react-auth'
+import { useWallets } from '@privy-io/react-auth'
 import { Modal } from '@/components/ui/Modal'
 
 const TOKENS = ['USDC', 'USDT'] as const
@@ -23,15 +23,12 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
   const [amount, setAmount] = useState('')
   const [destAddress, setDestAddress] = useState('')
   const [loading, setLoading] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
 
   const { wallets } = useWallets()
   const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy')
   const depositAddress = embeddedWallet?.address ?? ''
-
-  const { exportWallet } = useExportWallet()
 
   function closeModal() {
     setModal(null)
@@ -58,22 +55,12 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
     }
   }
 
-  async function handleExport() {
-    if (!depositAddress) return
-    setExporting(true)
-    try {
-      await exportWallet({ address: depositAddress })
-    } finally {
-      setExporting(false)
-    }
-  }
-
   const amountNum = parseFloat(amount) || 0
 
   return (
     <>
       {/* ── Action buttons ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
         <ActionButton
           icon={<DownIcon />}
           label="Deposit"
@@ -85,13 +72,6 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
           label="Withdraw"
           sub="Send on-chain"
           onClick={() => setModal('withdraw')}
-        />
-        <ActionButton
-          icon={<KeyIcon />}
-          label="Export Key"
-          sub="Back up wallet"
-          onClick={handleExport}
-          loading={exporting}
         />
       </div>
 
@@ -235,9 +215,6 @@ function DownIcon() {
 }
 function UpIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-}
-function KeyIcon() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><line x1="21" y1="2" x2="13" y2="10"/><line x1="18" y1="5" x2="21" y2="8"/></svg>
 }
 function CheckIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>

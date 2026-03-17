@@ -16,6 +16,7 @@ interface ConvexoAccountCardProps {
     method: string
     label: string | null
     details: Record<string, string>
+    directions: string[]
     is_default: boolean
     is_active: boolean
   }
@@ -63,7 +64,11 @@ export function ConvexoAccountCard({ account, privyToken, onUpdate }: ConvexoAcc
           <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
             {account.method === 'BANK' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {details.direction && <DirectionBadge direction={details.direction} />}
+                {account.directions.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {account.directions.map((d) => <DirectionBadge key={d} direction={d} />)}
+                  </div>
+                )}
                 <span>{[details.bank_name, details.account_number, details.currency].filter(Boolean).join(' · ')}</span>
                 {(details.branch_code || details.bank_code) && (
                   <span style={{ fontSize: 11, color: '#aaa' }}>
@@ -76,8 +81,10 @@ export function ConvexoAccountCard({ account, privyToken, onUpdate }: ConvexoAcc
             )}
             {account.method === 'CASH' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {details.direction && (
-                  <DirectionBadge direction={details.direction} />
+                {account.directions.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {account.directions.map((d) => <DirectionBadge key={d} direction={d} />)}
+                  </div>
                 )}
                 {(details.city || details.state) && (
                   <span style={{ color: '#555' }}>
@@ -94,6 +101,11 @@ export function ConvexoAccountCard({ account, privyToken, onUpdate }: ConvexoAcc
             )}
             {account.method === 'CRYPTO' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {account.directions.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 2 }}>
+                    {account.directions.map((d) => <DirectionBadge key={d} direction={d} />)}
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {details.network && (
                     <span style={{ background: (CHAIN_COLORS[details.network] ?? '#888') + '22', color: CHAIN_COLORS[details.network] ?? '#888', padding: '1px 7px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
@@ -130,7 +142,7 @@ export function ConvexoAccountCard({ account, privyToken, onUpdate }: ConvexoAcc
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Convexo Account">
         <ConvexoAccountForm
           privyToken={privyToken}
-          initial={{ id: account.id, method: account.method as 'BANK' | 'CRYPTO' | 'CASH', label: account.label ?? undefined, details, is_default: account.is_default }}
+          initial={{ id: account.id, method: account.method as 'BANK' | 'CRYPTO' | 'CASH', label: account.label ?? undefined, details, directions: account.directions, is_default: account.is_default }}
           onSave={() => { setEditOpen(false); onUpdate() }}
         />
       </Modal>
@@ -142,9 +154,8 @@ function DirectionBadge({ direction }: { direction: string }) {
   const map: Record<string, { bg: string; color: string; label: string }> = {
     COMPRAR:     { bg: '#d1fae5', color: '#065f46', label: 'COMPRAR' },
     VENDER:      { bg: '#fef3c7', color: '#92400e', label: 'VENDER' },
-    OTC:         { bg: '#e0e7ff', color: '#3730a3', label: 'COMPRAR + VENDER' },
     COLLECTIONS: { bg: '#fce7f3', color: '#9d174d', label: 'COLLECTIONS' },
-    ALL:         { bg: '#f3f4f6', color: '#374151', label: 'ALL' },
+    PAYMENTS:    { bg: '#e0e7ff', color: '#3730a3', label: 'PAYMENTS' },
   }
   const style = map[direction] ?? { bg: '#f3f4f6', color: '#374151', label: direction }
   return (

@@ -9,6 +9,7 @@ export type ConvexoAccount = {
   method: string
   label: string | null
   details: Record<string, string>
+  directions: string[]
   is_default: boolean
   is_active: boolean
 }

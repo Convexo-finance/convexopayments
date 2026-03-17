@@ -1,19 +1,30 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { OtcWizard } from './OtcWizard'
 
 const DEFAULT_SPREAD = 0.01
-const TOKENS = ['USDC', 'USDT'] as const
-type Token = typeof TOKENS[number]
 type Tab = 'comprar' | 'vender'
 
 interface OwnProfile { id: string; method: string; label: string | null; details?: Record<string, string> }
-interface ConvexoAccount { id: string; method: string; label: string | null; details: Record<string, string> }
+interface ConvexoAccount {
+  id: string; method: string; label: string | null
+  details: Record<string, string>
+  directions: string[]
+}
 
 interface HistoryItem {
   id: string; type: string; amount: string | number; currency: string
   status: string; created_at: string | null; paid_at?: string | null
   spread_pct?: number | null
+  provider_rate?: number | null
+  admin_rate?: number | null
+  initial_spread?: number | null
+  official_spread?: number | null
+  txn_url?: string | null
+  proof_url?: string | null
+  user_proof_url?: string | null
+  crypto_address?: string | null
   convexo_account_id?: string | null
   destination_profile_id?: string | null
   metadata: { cop_amount?: number; usdcop_rate?: number; spread_pct?: number } | null
@@ -33,7 +44,6 @@ interface OtcClientProps {
   history: HistoryItem[]
 }
 
-// Steps for the OTC progress stepper
 const OTC_STEPS = [
   { status: 'ORDERED',   label: 'Solicitado' },
   { status: 'ACEPTADO',  label: 'Aceptado' },
@@ -51,28 +61,21 @@ function getStepIndex(status: string) {
 
 export function OtcClient({ privyToken, balance, ownProfiles, convexoAccounts, history: initialHistory }: OtcClientProps) {
   const [tab, setTab] = useState<Tab>('comprar')
-  const [token, setToken] = useState<Token>('USDC')
-  const [amount, setAmount] = useState('')
   const [rate, setRate] = useState<number | null>(null)
   const [rateLoading, setRateLoading] = useState(false)
   const [rateError, setRateError] = useState(false)
-  const [destinationProfileId, setDestinationProfileId] = useState('')
-  const [selectedConvexoId, setSelectedConvexoId] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState(initialHistory)
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [payingId, setPayingId] = useState<string | null>(null)
+  const [txnUrlInputs, setTxnUrlInputs] = useState<Record<string, string>>({})
+  const [proofUploading, setProofUploading] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [activeUploadId, setActiveUploadId] = useState<string | null>(null)
 
-  const cashAccounts = convexoAccounts.filter((a) => a.method === 'CASH')
-  const convexoComprarAccounts = cashAccounts.filter((a) => ['COMPRAR', 'OTC', 'ALL'].includes(a.details.direction ?? ''))
-  const convexoVenderAccounts  = cashAccounts.filter((a) => ['VENDER',  'OTC', 'ALL'].includes(a.details.direction ?? ''))
-  const bankProfiles = ownProfiles.filter((p) => p.method === 'BANK')
-
-  const amountNum   = parseFloat(amount) || 0
-  const copComprar  = rate ? amountNum * rate * (1 + DEFAULT_SPREAD) : null
-  const copVender   = rate ? amountNum * rate * (1 - DEFAULT_SPREAD) : null
+  // Filter accounts by direction
+  const comprarAccounts = convexoAccounts.filter((a) => (a.directions ?? []).includes('COMPRAR'))
+  const venderAccounts  = convexoAccounts.filter((a) => (a.directions ?? []).includes('VENDER'))
 
   const fetchRate = useCallback(async () => {
     setRateLoading(true); setRateError(false)
@@ -85,63 +88,34 @@ export function OtcClient({ privyToken, balance, ownProfiles, convexoAccounts, h
 
   useEffect(() => { fetchRate() }, [fetchRate])
 
-  useEffect(() => {
-    if (convexoComprarAccounts.length > 0 && !selectedConvexoId) {
-      setSelectedConvexoId(convexoComprarAccounts[0].id)
-    }
-  }, [convexoComprarAccounts, selectedConvexoId])
-
-  function reset() { setAmount(''); setDestinationProfileId(''); setCreatedOrder(null); setError(null) }
+  function reset() { setCreatedOrder(null) }
   function switchTab(t: Tab) { setTab(t); reset() }
 
-  async function handleComprar() {
-    if (!amountNum || !rate) return
-    setLoading(true); setError(null)
-    try {
-      const { createWalletRequest } = await import('@/lib/actions/wallet')
-      const req = await createWalletRequest(privyToken, {
-        type: 'CASH_IN', amount: amountNum, currency: token,
-        convexo_account_id: selectedConvexoId || undefined,
-        metadata: { usdcop_rate: rate, spread_pct: DEFAULT_SPREAD, cop_amount: copComprar },
-      })
-      const acct = convexoComprarAccounts.find((a) => a.id === selectedConvexoId)
-      setCreatedOrder({ id: req.id, cop_amount: copComprar!, amount: amountNum, currency: token, spread_pct: DEFAULT_SPREAD, convexoAccount: acct })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setHistory((h) => [req as any, ...h])
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed')
-    } finally { setLoading(false) }
-  }
-
-  async function handleVender() {
-    if (!amountNum || !rate || !destinationProfileId) return
-    setLoading(true); setError(null)
-    try {
-      const { createWalletRequest } = await import('@/lib/actions/wallet')
-      const req = await createWalletRequest(privyToken, {
-        type: 'CASH_OUT', amount: amountNum, currency: token,
-        destination_profile_id: destinationProfileId,
-        metadata: { usdcop_rate: rate, spread_pct: DEFAULT_SPREAD, cop_amount: copVender },
-      })
-      const profile = bankProfiles.find((p) => p.id === destinationProfileId)
-      setCreatedOrder({ id: req.id, cop_amount: copVender!, amount: amountNum, currency: token, spread_pct: DEFAULT_SPREAD, ownProfileLabel: profile?.label ?? profile?.method })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setHistory((h) => [req as any, ...h])
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed')
-    } finally { setLoading(false) }
-  }
-
-  async function handleMarkAsPaid(requestId: string) {
+  async function handleMarkAsPaid(requestId: string, opts: { userProofUrl?: string; txnUrl?: string } = {}) {
     setPayingId(requestId)
     try {
       const { markOtcAsPaid } = await import('@/lib/actions/wallet')
-      await markOtcAsPaid(privyToken, requestId)
-      setHistory((h) => h.map((r) => r.id === requestId ? { ...r, status: 'REVISION' } : r))
+      await markOtcAsPaid(privyToken, requestId, opts)
+      setHistory((h) => h.map((r) => r.id === requestId ? {
+        ...r, status: 'REVISION',
+        ...(opts.userProofUrl ? { user_proof_url: opts.userProofUrl } : {}),
+        ...(opts.txnUrl ? { txn_url: opts.txnUrl } : {}),
+      } : r))
       setExpandedId(null)
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Error')
     } finally { setPayingId(null) }
+  }
+
+  async function handleProofUpload(requestId: string, file: File) {
+    setProofUploading(requestId)
+    try {
+      const { uploadUserFile } = await import('@/lib/actions/wallet')
+      const url = await uploadUserFile(privyToken, file)
+      await handleMarkAsPaid(requestId, { userProofUrl: url })
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error subiendo comprobante')
+    } finally { setProofUploading(null); setActiveUploadId(null) }
   }
 
   return (
@@ -188,208 +162,228 @@ export function OtcClient({ privyToken, balance, ownProfiles, convexoAccounts, h
         <div style={{ padding: 24 }}>
           {createdOrder ? (
             <OrderSuccess order={createdOrder} type={tab} onDone={reset} />
-          ) : tab === 'comprar' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.6)' }}>
-                Envía COP a Convexo y recibe USDC acreditado en tu cuenta.
-              </p>
-              <TokenAmount token={token} amount={amount} onToken={setToken} onAmount={setAmount} />
-              {rate && amountNum > 0 && <SpreadBox rate={rate} cop={copComprar!} spread={DEFAULT_SPREAD} dir="in" />}
-
-              {convexoComprarAccounts.length === 0 ? (
-                <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#f59e0b' }}>
-                  No hay opciones de pago de Convexo disponibles para COMPRAR. Contacta soporte.
-                </div>
-              ) : (
-                <div>
-                  <label style={labelStyle}>Enviar a (cuenta Convexo)</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {convexoComprarAccounts.map((acct) => {
-                      const sel = selectedConvexoId === acct.id
-                      return (
-                        <div key={acct.id} onClick={() => setSelectedConvexoId(acct.id)} style={{
-                          border: `2px solid ${sel ? '#334EAC' : 'rgba(186,214,235,0.15)'}`,
-                          borderRadius: 10, padding: '12px 16px', cursor: 'pointer',
-                          background: sel ? 'rgba(51,78,172,0.1)' : 'rgba(255,255,255,0.03)',
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
-                              {acct.label ?? acct.details.bank_name ?? 'Opción de pago'}
-                            </span>
-                            {acct.details.currency && (
-                              <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(51,78,172,0.3)', color: '#BAD6EB', padding: '1px 7px', borderRadius: 99 }}>
-                                {acct.details.currency}
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'rgba(186,214,235,0.55)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                            {acct.details.bank_name && <span>{acct.details.bank_name}</span>}
-                            {acct.details.account_number && <span>Cuenta: {acct.details.account_number}</span>}
-                            {acct.details.routing_number && <span>SWIFT: {acct.details.routing_number}</span>}
-                            {acct.details.account_name && <span>{acct.details.account_name}</span>}
-                          </div>
-                          {acct.details.instructions && (
-                            <div style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)', marginTop: 4, fontStyle: 'italic' }}>
-                              {acct.details.instructions}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {error && <p style={{ color: '#ef4444', fontSize: 13 }}>{error}</p>}
-              <button onClick={handleComprar} disabled={loading || !amountNum || !rate || !selectedConvexoId}
-                style={{ ...primaryBtn, opacity: (!amountNum || !rate || !selectedConvexoId || loading) ? 0.5 : 1 }}>
-                {loading ? 'Creando...' : 'Crear orden COMPRAR'}
-              </button>
-            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.6)' }}>
-                Convierte tu USDC a COP. Balance: <strong style={{ color: 'rgba(255,255,255,0.9)' }}>{balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC</strong>
-              </p>
-              <TokenAmount token={token} amount={amount} onToken={setToken} onAmount={setAmount} max={balance} />
-              {rate && amountNum > 0 && <SpreadBox rate={rate} cop={copVender!} spread={DEFAULT_SPREAD} dir="out" />}
-
-              <div>
-                <label style={labelStyle}>Recibir COP en (tu cuenta bancaria)</label>
-                {bankProfiles.length === 0 ? (
-                  <p style={{ fontSize: 12, color: '#f59e0b' }}>
-                    No tienes cuentas bancarias. Agrega una en <a href="/metodos-pago" style={{ color: '#BAD6EB' }}>Métodos de Pago</a>.
-                  </p>
-                ) : (
-                  <select style={inputStyle} value={destinationProfileId} onChange={(e) => setDestinationProfileId(e.target.value)}>
-                    <option value="">Selecciona cuenta bancaria...</option>
-                    {bankProfiles.map((p) => <option key={p.id} value={p.id}>{p.label ?? p.method}</option>)}
-                  </select>
-                )}
-              </div>
-
-              {amountNum > balance && <p style={{ color: '#ef4444', fontSize: 12 }}>El monto supera tu balance.</p>}
-              {error && <p style={{ color: '#ef4444', fontSize: 13 }}>{error}</p>}
-              <button onClick={handleVender} disabled={loading || !amountNum || !rate || !destinationProfileId || amountNum > balance}
-                style={{ ...primaryBtn, opacity: (!amountNum || !rate || !destinationProfileId || amountNum > balance || loading) ? 0.5 : 1 }}>
-                {loading ? 'Enviando...' : 'Crear orden VENDER'}
-              </button>
-            </div>
+            <OtcWizard
+              key={tab}
+              privyToken={privyToken}
+              balance={balance}
+              tab={tab}
+              ownProfiles={ownProfiles}
+              comprarAccounts={comprarAccounts}
+              venderAccounts={venderAccounts}
+              rate={rate}
+              rateLoading={rateLoading}
+              onOrderCreated={(order) => {
+                setCreatedOrder(order)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setHistory((h) => [{ id: order.id, type: tab === 'comprar' ? 'CASH_IN' : 'CASH_OUT', amount: order.amount, currency: order.currency, status: 'ORDERED', created_at: new Date().toISOString(), metadata: { cop_amount: order.cop_amount, spread_pct: order.spread_pct } } as any, ...h])
+              }}
+            />
           )}
         </div>
       </div>
 
-      {/* Request history — filtered by active tab */}
+      {/* Hidden file input for proof upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file && activeUploadId) handleProofUpload(activeUploadId, file)
+          e.target.value = ''
+        }}
+      />
+
+      {/* Request history */}
       {(() => {
         const typeFilter = tab === 'comprar' ? 'CASH_IN' : 'CASH_OUT'
         const filtered = history.filter((r) => r.type === typeFilter)
         if (filtered.length === 0) return null
         return (
-        <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(186,214,235,0.08)', background: 'rgba(186,214,235,0.04)' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
-              Historial — {tab === 'comprar' ? 'COMPRAR' : 'VENDER'}
-            </span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr>
-                {['Fecha creación', 'Token', 'Monto', 'Fiat (COP)', 'Tasa final', 'Fecha pago', 'Estado', ''].map((h) => (
-                  <th key={h} style={thStyle}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => {
-                const spread = r.spread_pct ?? r.metadata?.spread_pct ?? DEFAULT_SPREAD
-                const baseRate = r.metadata?.usdcop_rate ?? null
-                const finalRate = baseRate
-                  ? (r.type === 'CASH_IN' ? baseRate * (1 + spread) : baseRate * (1 - spread))
-                  : null
-                const isExpanded = expandedId === r.id
-                const convexoAcct = convexoAccounts.find((a) => a.id === r.convexo_account_id)
+          <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(186,214,235,0.1)', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(186,214,235,0.08)', background: 'rgba(186,214,235,0.04)' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
+                Historial — {tab === 'comprar' ? 'COMPRAR' : 'VENDER'}
+              </span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    {['Fecha creación', 'Token', 'Monto', 'Fiat (COP)', 'Tasa final', 'Fecha pago', 'Estado', ''].map((h) => (
+                      <th key={h} style={thStyle}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r) => {
+                    const spread = r.spread_pct ?? r.metadata?.spread_pct ?? DEFAULT_SPREAD
+                    const baseRate = r.admin_rate ?? r.metadata?.usdcop_rate ?? null
+                    const finalRate = baseRate
+                      ? (r.type === 'CASH_IN' ? baseRate * (1 + spread) : baseRate * (1 - spread))
+                      : null
+                    const isExpanded = expandedId === r.id
+                    const convexoAcct = convexoAccounts.find((a) => a.id === r.convexo_account_id)
+                    const canExpand = ['POR_PAGAR', 'REVISION', 'LIQUIDADO'].includes(r.status)
 
-                return (
-                  <>
-                    <tr key={r.id} style={{ borderBottom: isExpanded ? 'none' : '1px solid rgba(186,214,235,0.07)' }}>
-                      <td style={{ ...tdStyle, color: 'rgba(186,214,235,0.7)', whiteSpace: 'nowrap' }}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
-                      <td style={{ ...tdStyle, fontWeight: 700 }}>{r.currency}</td>
-                      <td style={{ ...tdStyle, fontWeight: 700 }}>{Number(r.amount).toLocaleString()}</td>
-                      <td style={tdStyle}>{r.metadata?.cop_amount ? `$${Number(r.metadata.cop_amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</td>
-                      <td style={tdStyle}>
-                        {finalRate
-                          ? <span style={{ fontWeight: 700, color: '#BAD6EB' }}>{finalRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                          : <span style={{ color: 'rgba(186,214,235,0.3)' }}>—</span>}
-                      </td>
-                      <td style={{ ...tdStyle, color: r.paid_at ? '#10b981' : 'rgba(186,214,235,0.3)', whiteSpace: 'nowrap' }}>{r.paid_at ? new Date(r.paid_at).toLocaleDateString() : '—'}</td>
-                      <td style={tdStyle}><StatusBadge status={r.status} /></td>
-                      <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          {r.status === 'POR_PAGAR' && (
-                            <button onClick={() => setExpandedId(isExpanded ? null : r.id)}
-                              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#f59e0b', cursor: 'pointer' }}>
-                              {isExpanded ? 'Cerrar' : 'Ver instrucciones'}
-                            </button>
-                          )}
-                          <CopyButton text={buildClipboardText(r, spread)} />
-                        </div>
-                      </td>
-                    </tr>
+                    return (
+                      <>
+                        <tr key={r.id} style={{ borderBottom: isExpanded ? 'none' : '1px solid rgba(186,214,235,0.07)' }}>
+                          <td style={{ ...tdStyle, color: 'rgba(186,214,235,0.7)', whiteSpace: 'nowrap' }}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
+                          <td style={{ ...tdStyle, fontWeight: 700 }}>{r.currency}</td>
+                          <td style={{ ...tdStyle, fontWeight: 700 }}>{Number(r.amount).toLocaleString()}</td>
+                          <td style={tdStyle}>{r.metadata?.cop_amount ? `$${Number(r.metadata.cop_amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</td>
+                          <td style={tdStyle}>
+                            {finalRate
+                              ? <span style={{ fontWeight: 700, color: '#BAD6EB' }}>{finalRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                              : <span style={{ color: 'rgba(186,214,235,0.3)' }}>—</span>}
+                          </td>
+                          <td style={{ ...tdStyle, color: r.paid_at ? '#10b981' : 'rgba(186,214,235,0.3)', whiteSpace: 'nowrap' }}>{r.paid_at ? new Date(r.paid_at).toLocaleDateString() : '—'}</td>
+                          <td style={tdStyle}><StatusBadge status={r.status} /></td>
+                          <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              {canExpand && (
+                                <button onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                                  style={{ background: 'rgba(186,214,235,0.1)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#BAD6EB', cursor: 'pointer' }}>
+                                  {isExpanded ? 'Cerrar' : r.status === 'POR_PAGAR' ? 'Acción' : 'Detalle'}
+                                </button>
+                              )}
+                              <CopyButton text={buildClipboardText(r, spread)} />
+                            </div>
+                          </td>
+                        </tr>
 
-                    {/* Expandable POR_PAGAR panel */}
-                    {isExpanded && r.status === 'POR_PAGAR' && (
-                      <tr key={r.id + '-expand'} style={{ borderBottom: '1px solid rgba(186,214,235,0.07)' }}>
-                        <td colSpan={8} style={{ padding: '0 16px 16px' }}>
-                          <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 10, padding: 16 }}>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 12 }}>
-                              Instrucciones de pago
-                            </p>
-                            {r.type === 'CASH_IN' && convexoAcct ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14, fontFamily: 'monospace', fontSize: 12, color: 'rgba(186,214,235,0.8)' }}>
-                                <div>
-                                  <span style={{ color: 'rgba(186,214,235,0.4)' }}>Monto a enviar:</span>{' '}
-                                  {r.metadata?.cop_amount
-                                    ? `${convexoAcct.details.currency ?? ''} ${Number(r.metadata.cop_amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-                                    : '—'}
-                                </div>
-                                {convexoAcct.details.bank_name && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Banco:</span> {convexoAcct.details.bank_name}</div>}
-                                {convexoAcct.details.account_name && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Beneficiario:</span> {convexoAcct.details.account_name}</div>}
-                                {convexoAcct.details.account_number && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Cuenta:</span> {convexoAcct.details.account_number}</div>}
-                                {convexoAcct.details.routing_number && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>SWIFT/Routing:</span> {convexoAcct.details.routing_number}</div>}
-                                {convexoAcct.label && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Referencia:</span> {convexoAcct.label}</div>}
-                                {convexoAcct.details.instructions && (
-                                  <div style={{ marginTop: 4, padding: '8px 10px', background: 'rgba(186,214,235,0.05)', borderRadius: 6, color: 'rgba(186,214,235,0.7)', fontFamily: 'sans-serif', fontStyle: 'italic', fontSize: 12 }}>
-                                    {convexoAcct.details.instructions}
+                        {/* Expanded panel */}
+                        {isExpanded && (
+                          <tr key={r.id + '-expand'} style={{ borderBottom: '1px solid rgba(186,214,235,0.07)' }}>
+                            <td colSpan={8} style={{ padding: '0 16px 16px' }}>
+                              <div style={{ background: 'rgba(186,214,235,0.04)', border: '1px solid rgba(186,214,235,0.1)', borderRadius: 10, padding: 16, marginTop: 8 }}>
+                                <OtcStepper status={r.status} />
+
+                                {/* POR_PAGAR: action panel */}
+                                {r.status === 'POR_PAGAR' && r.type === 'CASH_IN' && convexoAcct && (
+                                  <div style={{ marginTop: 16 }}>
+                                    <p style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 12 }}>Instrucciones de pago</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14, fontFamily: 'monospace', fontSize: 12, color: 'rgba(186,214,235,0.8)' }}>
+                                      <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Monto a enviar:</span>{' '}
+                                        {r.metadata?.cop_amount ? `${convexoAcct.details.currency ?? 'COP'} ${Number(r.metadata.cop_amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
+                                      </div>
+                                      {convexoAcct.details.bank_name && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Banco:</span> {convexoAcct.details.bank_name}</div>}
+                                      {convexoAcct.details.account_name && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Beneficiario:</span> {convexoAcct.details.account_name}</div>}
+                                      {convexoAcct.details.account_number && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Cuenta:</span> {convexoAcct.details.account_number}</div>}
+                                      {convexoAcct.details.routing_number && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>SWIFT/Routing:</span> {convexoAcct.details.routing_number}</div>}
+                                      {convexoAcct.details.address && convexoAcct.method === 'CRYPTO' && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Dirección:</span> {convexoAcct.details.address}</div>}
+                                      {convexoAcct.details.instructions && (
+                                        <div style={{ marginTop: 4, padding: '8px 10px', background: 'rgba(186,214,235,0.05)', borderRadius: 6, color: 'rgba(186,214,235,0.7)', fontFamily: 'sans-serif', fontStyle: 'italic', fontSize: 12 }}>
+                                          {convexoAcct.details.instructions}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p style={{ fontSize: 12, color: 'rgba(186,214,235,0.6)', marginBottom: 10 }}>
+                                      Una vez realizado el pago, sube el comprobante para que Convexo lo procese.
+                                    </p>
+                                    <button
+                                      onClick={() => { setActiveUploadId(r.id); fileInputRef.current?.click() }}
+                                      disabled={!!proofUploading}
+                                      style={{ background: 'linear-gradient(135deg, #334EAC, #401777)', color: 'white', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 700, cursor: proofUploading ? 'wait' : 'pointer', opacity: proofUploading ? 0.6 : 1 }}
+                                    >
+                                      {proofUploading === r.id ? 'Subiendo...' : '📎 Subir comprobante de pago'}
+                                    </button>
+                                  </div>
+                                )}
+
+                                {r.status === 'POR_PAGAR' && r.type === 'CASH_OUT' && (
+                                  <div style={{ marginTop: 16 }}>
+                                    <p style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 12 }}>Envía tu cripto a Convexo</p>
+                                    {convexoAcct && convexoAcct.method === 'CRYPTO' && (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14, fontFamily: 'monospace', fontSize: 12, color: 'rgba(186,214,235,0.8)' }}>
+                                        {convexoAcct.details.network && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Red:</span> {convexoAcct.details.network}</div>}
+                                        {convexoAcct.details.token && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Token:</span> {convexoAcct.details.token}</div>}
+                                        {convexoAcct.details.address && (
+                                          <>
+                                            <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Dirección:</span> {convexoAcct.details.address}</div>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                    <div style={{ marginBottom: 12 }}>
+                                      <label style={labelStyle}>URL de la transacción (txn hash)</label>
+                                      <input
+                                        type="text"
+                                        placeholder="https://etherscan.io/tx/0x..."
+                                        value={txnUrlInputs[r.id] ?? ''}
+                                        onChange={(e) => setTxnUrlInputs((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                                        style={inputStyle}
+                                      />
+                                    </div>
+                                    <button
+                                      onClick={() => handleMarkAsPaid(r.id, { txnUrl: txnUrlInputs[r.id] })}
+                                      disabled={!!payingId || !txnUrlInputs[r.id]}
+                                      style={{ background: 'linear-gradient(135deg, #334EAC, #401777)', color: 'white', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 700, cursor: (payingId || !txnUrlInputs[r.id]) ? 'not-allowed' : 'pointer', opacity: (payingId || !txnUrlInputs[r.id]) ? 0.5 : 1 }}
+                                    >
+                                      {payingId === r.id ? 'Enviando...' : '✓ Confirmé el envío de cripto'}
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* REVISION: waiting */}
+                                {r.status === 'REVISION' && (
+                                  <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(186,214,235,0.06)', borderRadius: 8, fontSize: 13, color: 'rgba(186,214,235,0.7)' }}>
+                                    ⏳ Tu {r.type === 'CASH_IN' ? 'comprobante' : 'transacción'} está siendo revisado por Convexo.
+                                    {r.user_proof_url && (
+                                      <div style={{ marginTop: 8 }}>
+                                        <a href={r.user_proof_url} target="_blank" rel="noopener noreferrer" style={{ color: '#BAD6EB', fontSize: 12 }}>Ver comprobante adjunto →</a>
+                                      </div>
+                                    )}
+                                    {r.txn_url && (
+                                      <div style={{ marginTop: 8 }}>
+                                        <a href={r.txn_url} target="_blank" rel="noopener noreferrer" style={{ color: '#BAD6EB', fontSize: 12 }}>Ver transacción →</a>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* LIQUIDADO: settled summary */}
+                                {r.status === 'LIQUIDADO' && (
+                                  <div style={{ marginTop: 16 }}>
+                                    <p style={{ fontSize: 13, fontWeight: 700, color: '#10b981', marginBottom: 12 }}>✓ Orden liquidada</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'monospace', fontSize: 12, color: 'rgba(186,214,235,0.8)' }}>
+                                      <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>ID:</span> #{r.id.slice(0, 8).toUpperCase()}</div>
+                                      <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Monto:</span> {Number(r.amount).toLocaleString()} {r.currency}</div>
+                                      {r.metadata?.cop_amount && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Equivalente COP:</span> ${Number(r.metadata.cop_amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>}
+                                      {(r.admin_rate ?? r.metadata?.usdcop_rate) && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Tasa aplicada:</span> {Number(r.admin_rate ?? r.metadata?.usdcop_rate).toLocaleString(undefined, { maximumFractionDigits: 0 })} COP/USD</div>}
+                                      {r.official_spread != null && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Spread oficial:</span> {(r.official_spread * 100).toFixed(2)}%</div>}
+                                      {r.paid_at && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Liquidado:</span> {new Date(r.paid_at).toLocaleDateString()}</div>}
+                                    </div>
+                                    <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                      {r.proof_url && (
+                                        <a href={r.proof_url} target="_blank" rel="noopener noreferrer"
+                                          style={{ fontSize: 12, color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>
+                                          ✓ Ver comprobante →
+                                        </a>
+                                      )}
+                                      {r.txn_url && (
+                                        <a href={r.txn_url} target="_blank" rel="noopener noreferrer"
+                                          style={{ fontSize: 12, color: '#BAD6EB', fontWeight: 600, textDecoration: 'none' }}>
+                                          🔗 Ver transacción →
+                                        </a>
+                                      )}
+                                    </div>
                                   </div>
                                 )}
                               </div>
-                            ) : r.type === 'CASH_OUT' ? (
-                              <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.7)', marginBottom: 14 }}>
-                                Convexo enviará <strong style={{ color: 'white' }}>${r.metadata?.cop_amount ? Number(r.metadata.cop_amount).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—'} COP</strong> a tu cuenta bancaria registrada.
-                              </p>
-                            ) : null}
-                            <OtcStepper status={r.status} />
-                            <div style={{ marginTop: 14 }}>
-                              <button
-                                onClick={() => handleMarkAsPaid(r.id)}
-                                disabled={!!payingId}
-                                style={{ background: 'linear-gradient(135deg, #334EAC, #401777)', color: 'white', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 700, cursor: payingId ? 'wait' : 'pointer', opacity: payingId ? 0.6 : 1 }}
-                              >
-                                {payingId === r.id ? 'Procesando...' : r.type === 'CASH_IN' ? '✓ Marqué el pago' : '✓ Confirmo haber recibido'}
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                )
-              })}
-            </tbody>
-          </table>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
         )
       })()}
     </div>
@@ -447,6 +441,7 @@ function buildClipboardText(r: HistoryItem, spread: number): string {
   ]
   if (r.metadata?.cop_amount) lines.push(`COP       : $${Number(r.metadata.cop_amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}`)
   if (r.metadata?.usdcop_rate) lines.push(`Tasa      : ${Number(r.metadata.usdcop_rate).toLocaleString(undefined, { maximumFractionDigits: 0 })} COP/USD`)
+  if (r.crypto_address) lines.push(`Dirección : ${r.crypto_address}`)
   if (r.created_at) lines.push(`Creado    : ${new Date(r.created_at).toLocaleDateString()}`)
   if (r.paid_at) lines.push(`Pagado    : ${new Date(r.paid_at).toLocaleDateString()}`)
   lines.push(`Estado    : ${r.status}`)
@@ -466,6 +461,7 @@ function buildShareText(order: CreatedOrder, type: Tab): string {
     lines.push(``, `Enviaré el pago a:`)
     if (order.convexoAccount.details.bank_name) lines.push(`Banco: ${order.convexoAccount.details.bank_name}`)
     if (order.convexoAccount.details.account_number) lines.push(`Cuenta: ${order.convexoAccount.details.account_number}`)
+    if (order.convexoAccount.details.address) lines.push(`Wallet: ${order.convexoAccount.details.address}`)
   }
   if (type === 'vender' && order.ownProfileLabel) {
     lines.push(``, `Recibir en: ${order.ownProfileLabel}`)
@@ -486,28 +482,17 @@ function OrderSuccess({ order, type, onDone }: { order: CreatedOrder; type: Tab;
         </p>
         <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.7)' }}>
           {type === 'comprar'
-            ? <>Envía <strong style={{ color: 'white' }}>${order.cop_amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} COP</strong> a Convexo y comparte los detalles.</>
-            : <>Convexo te enviará <strong style={{ color: 'white' }}>${order.cop_amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} COP</strong> a tu cuenta bancaria.</>
+            ? <>Envía <strong style={{ color: 'white' }}>${order.cop_amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} COP</strong> a Convexo. Cuando Convexo la acepte, recibirás instrucciones de pago.</>
+            : <>Cuando Convexo acepte la orden, recibirás la dirección cripto a la que debes enviar <strong style={{ color: 'white' }}>{order.amount} {order.currency}</strong>.</>
           }
         </p>
       </div>
 
-      {/* Order summary */}
       <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 8, padding: '14px 16px', fontFamily: 'monospace', fontSize: 12, color: 'rgba(186,214,235,0.7)', display: 'flex', flexDirection: 'column', gap: 5 }}>
         <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>ID:</span> #{order.id.slice(0, 8).toUpperCase()}</div>
         <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Monto:</span> {order.amount} {order.currency}</div>
         <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>COP:</span> ${order.cop_amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-        <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Spread:</span> {(order.spread_pct * 100).toFixed(2)}%</div>
-        {type === 'comprar' && order.convexoAccount && (
-          <>
-            <div style={{ borderTop: '1px solid rgba(186,214,235,0.1)', marginTop: 4, paddingTop: 6, color: 'rgba(186,214,235,0.4)', fontSize: 11 }}>ENVIAR A</div>
-            {order.convexoAccount.details.bank_name && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Banco:</span> {order.convexoAccount.details.bank_name}</div>}
-            {order.convexoAccount.details.account_number && <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Cuenta:</span> {order.convexoAccount.details.account_number}</div>}
-          </>
-        )}
-        {type === 'vender' && order.ownProfileLabel && (
-          <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Recibir en:</span> {order.ownProfileLabel}</div>
-        )}
+        <div><span style={{ color: 'rgba(186,214,235,0.4)' }}>Spread inicial:</span> {(order.spread_pct * 100).toFixed(2)}%</div>
       </div>
 
       <OtcStepper status="ORDERED" />
@@ -549,54 +534,6 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function TokenAmount({ token, amount, onToken, onAmount, max }: {
-  token: Token; amount: string; onToken: (t: Token) => void; onAmount: (v: string) => void; max?: number
-}) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
-      <div>
-        <label style={labelStyle}>Token</label>
-        <select style={inputStyle} value={token} onChange={(e) => onToken(e.target.value as Token)}>
-          {TOKENS.map((t) => <option key={t}>{t}</option>)}
-        </select>
-      </div>
-      <div>
-        <label style={{ ...labelStyle, display: 'flex', justifyContent: 'space-between' }}>
-          <span>Monto</span>
-          {max !== undefined && (
-            <button type="button" onClick={() => onAmount(String(max))} style={{ fontSize: 11, color: '#BAD6EB', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Máx</button>
-          )}
-        </label>
-        <input type="number" min="0" step="any" style={inputStyle} placeholder="0.00" value={amount} onChange={(e) => onAmount(e.target.value)} />
-      </div>
-    </div>
-  )
-}
-
-function SpreadBox({ rate, cop, spread, dir }: { rate: number; cop: number; spread: number; dir: 'in' | 'out' }) {
-  const valueColor = dir === 'in' ? '#BAD6EB' : '#10b981'
-  const spreadAmt  = rate * spread
-  return (
-    <div style={{ background: 'rgba(186,214,235,0.08)', borderRadius: 10, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.7)' }}>
-          Tasa base <span style={{ color: 'rgba(186,214,235,0.4)' }}>×</span> spread {(spread * 100).toFixed(2)}%
-        </span>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
-          {rate.toLocaleString(undefined, { maximumFractionDigits: 0 })} {dir === 'in' ? '+' : '−'} {spreadAmt.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-          {' = '}
-          <strong>{(dir === 'in' ? rate + spreadAmt : rate - spreadAmt).toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
-        </span>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(186,214,235,0.15)', paddingTop: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
-          {dir === 'in' ? 'Debes enviar (COP)' : 'Recibes (COP)'}
-        </span>
-        <span style={{ fontSize: 16, fontWeight: 800, color: valueColor }}>${cop.toLocaleString(undefined, { maximumFractionDigits: 0 })} COP</span>
-      </div>
-    </div>
-  )
-}
 
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(186,214,235,0.7)', marginBottom: 5 }
 const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid rgba(186,214,235,0.2)', fontSize: 13, color: 'white', background: 'rgba(255,255,255,0.07)', outline: 'none', boxSizing: 'border-box' }

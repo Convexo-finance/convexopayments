@@ -98,6 +98,7 @@ export type Database = {
         Row: {
           created_at: string | null
           details: Json
+          directions: string[]
           doc_url: string | null
           id: string
           is_active: boolean
@@ -109,6 +110,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           details?: Json
+          directions?: string[]
           doc_url?: string | null
           id?: string
           is_active?: boolean
@@ -120,6 +122,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           details?: Json
+          directions?: string[]
           doc_url?: string | null
           id?: string
           is_active?: boolean
@@ -557,57 +560,78 @@ export type Database = {
       wallet_requests: {
         Row: {
           admin_note: string | null
+          admin_rate: number | null
           amount: number
           convexo_account_id: string | null
           created_at: string | null
+          crypto_address: string | null
           currency: string
           destination_profile_id: string | null
           id: string
+          initial_spread: number | null
           metadata: Json
+          official_spread: number | null
           paid_at: string | null
           proof_url: string | null
+          provider_rate: number | null
           rejection_reason: string | null
           spread_pct: number | null
           status: string
+          txn_url: string | null
           type: string
           updated_at: string | null
           user_id: string | null
+          user_proof_url: string | null
         }
         Insert: {
           admin_note?: string | null
+          admin_rate?: number | null
           amount: number
           convexo_account_id?: string | null
           created_at?: string | null
+          crypto_address?: string | null
           currency: string
           destination_profile_id?: string | null
           id?: string
+          initial_spread?: number | null
           metadata?: Json
+          official_spread?: number | null
           paid_at?: string | null
           proof_url?: string | null
+          provider_rate?: number | null
           rejection_reason?: string | null
           spread_pct?: number | null
           status?: string
+          txn_url?: string | null
           type: string
           updated_at?: string | null
           user_id?: string | null
+          user_proof_url?: string | null
         }
         Update: {
           admin_note?: string | null
+          admin_rate?: number | null
           amount?: number
           convexo_account_id?: string | null
           created_at?: string | null
+          crypto_address?: string | null
           currency?: string
           destination_profile_id?: string | null
           id?: string
+          initial_spread?: number | null
           metadata?: Json
+          official_spread?: number | null
           paid_at?: string | null
           proof_url?: string | null
+          provider_rate?: number | null
           rejection_reason?: string | null
           spread_pct?: number | null
           status?: string
+          txn_url?: string | null
           type?: string
           updated_at?: string | null
           user_id?: string | null
+          user_proof_url?: string | null
         }
         Relationships: [
           {

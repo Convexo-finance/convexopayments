@@ -37,6 +37,7 @@ const USER_NAV = [
     group: 'Settings',
     items: [
       { label: 'Authentication', href: '/settings/auth' },
+      { label: 'Seguridad',      href: '/settings/security' },
     ],
   },
 ]

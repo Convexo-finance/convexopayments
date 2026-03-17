@@ -1,5 +1,5 @@
 'use server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getSessionUser } from './auth'
 
 const OTC_CANCEL_ALLOWED = ['ORDERED', 'ACEPTADO', 'POR_PAGAR']
@@ -10,6 +10,9 @@ export type WalletRequestInput = {
   currency: string
   destination_profile_id?: string
   convexo_account_id?: string
+  provider_rate?: number
+  initial_spread?: number
+  crypto_address?: string
   metadata?: Record<string, unknown>
 }
 
@@ -32,18 +35,45 @@ export async function createWalletRequest(
   const user = await getSessionUser(privyToken)
   if (!user) throw new Error('NOT_FOUND')
   const supabase = await createClient(privyToken)
-  const spreadPct = (data.metadata?.spread_pct as number) ?? 0.01
+  const spreadPct = (data.metadata?.spread_pct as number) ?? data.initial_spread ?? 0.01
   const { data: req, error } = await supabase
     .from('wallet_requests')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .insert({ ...data, user_id: user.id, status: 'ORDERED', spread_pct: spreadPct } as any)
+    .insert({
+      ...data,
+      user_id: user.id,
+      status: 'ORDERED',
+      spread_pct: spreadPct,
+      provider_rate: data.provider_rate ?? null,
+      initial_spread: data.initial_spread ?? spreadPct,
+      crypto_address: data.crypto_address ?? null,
+    } as any)
     .select()
     .single()
   if (error) throw error
   return req
 }
 
-export async function markOtcAsPaid(privyToken: string, requestId: string) {
+export async function uploadUserFile(privyToken: string, file: File) {
+  const user = await getSessionUser(privyToken)
+  if (!user) throw new Error('NOT_FOUND')
+  const supabase = await createServiceClient()
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `user-proofs/${user.id}/${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('documents').upload(path, file, {
+    upsert: true,
+    contentType: file.type || 'application/octet-stream',
+  })
+  if (error) throw error
+  const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
+  return publicUrl
+}
+
+export async function markOtcAsPaid(
+  privyToken: string,
+  requestId: string,
+  opts: { userProofUrl?: string; txnUrl?: string } = {}
+) {
   const user = await getSessionUser(privyToken)
   if (!user) throw new Error('NOT_FOUND')
   const supabase = await createClient(privyToken)
@@ -54,9 +84,15 @@ export async function markOtcAsPaid(privyToken: string, requestId: string) {
     .eq('user_id', user.id)
     .single()
   if (!req || req.status !== 'POR_PAGAR') throw new Error('INVALID_TRANSITION')
+  const update: Record<string, unknown> = {
+    status: 'REVISION',
+    updated_at: new Date().toISOString(),
+  }
+  if (opts.userProofUrl) update.user_proof_url = opts.userProofUrl
+  if (opts.txnUrl) update.txn_url = opts.txnUrl
   const { error } = await supabase
     .from('wallet_requests')
-    .update({ status: 'REVISION', updated_at: new Date().toISOString() })
+    .update(update)
     .eq('id', requestId)
   if (error) throw error
 }

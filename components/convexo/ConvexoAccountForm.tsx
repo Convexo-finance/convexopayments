@@ -13,12 +13,10 @@ const ALL_COUNTRIES = Country.getAllCountries().sort((a, b) => a.name.localeComp
 const POPULAR_ISO = ['CO', 'US', 'MX', 'ES', 'CN', 'AR', 'BR', 'DE', 'GB', 'FR']
 
 const DIRECTIONS = [
-  { value: 'COMPRAR',     label: 'COMPRAR',           desc: 'OTC buy orders — user sends fiat to Convexo' },
-  { value: 'VENDER',      label: 'VENDER',            desc: 'OTC sell orders — Convexo sends fiat to user' },
-  { value: 'OTC',         label: 'COMPRAR + VENDER',  desc: 'Both OTC directions' },
-  { value: 'COLLECTIONS', label: 'COLLECTIONS',       desc: 'Collect orders — client sends fiat here' },
-  { value: 'PAYMENTS',   label: 'PAYMENTS',           desc: 'Pay orders — user sends funds to Convexo to pay a supplier' },
-  { value: 'ALL',         label: 'Todos / All',       desc: 'Available everywhere' },
+  { value: 'COMPRAR',     label: 'COMPRAR',     desc: 'OTC buy — user sends fiat to Convexo, receives crypto' },
+  { value: 'VENDER',      label: 'VENDER',      desc: 'OTC sell — user sends crypto to Convexo, receives fiat' },
+  { value: 'COLLECTIONS', label: 'COLLECTIONS', desc: 'Collect orders — client sends fiat here' },
+  { value: 'PAYMENTS',    label: 'PAYMENTS',    desc: 'Pay orders — user sends funds to Convexo to pay a supplier' },
 ]
 
 type Method = 'BANK' | 'CRYPTO' | 'CASH'
@@ -39,6 +37,7 @@ interface ConvexoAccountFormProps {
     method?: Method
     label?: string
     details?: Record<string, string>
+    directions?: string[]
     is_default?: boolean
   }
 }
@@ -50,9 +49,18 @@ export function ConvexoAccountForm({ privyToken, onSave, initial = {} }: Convexo
   const [method, setMethod] = useState<Method>(initial.method ?? 'BANK')
   const [label, setLabel] = useState(initial.label ?? '')
   const [details, setDetails] = useState<Record<string, string>>(initial.details ?? {})
+  const [selectedDirections, setSelectedDirections] = useState<string[]>(
+    initial.directions ?? (initial.details?.direction ? [initial.details.direction] : [])
+  )
   const [isDefault, setIsDefault] = useState(initial.is_default ?? false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function toggleDirection(value: string) {
+    setSelectedDirections((prev) =>
+      prev.includes(value) ? prev.filter((d) => d !== value) : [...prev, value]
+    )
+  }
 
   function set(key: string, value: string) {
     setDetails((d) => ({ ...d, [key]: value }))
@@ -110,7 +118,7 @@ export function ConvexoAccountForm({ privyToken, onSave, initial = {} }: Convexo
     setLoading(true); setError(null)
     try {
       const { createConvexoAccount, updateConvexoAccount } = await import('@/lib/actions/convexo-accounts')
-      const payload = { method, label: label || method, details, is_default: isDefault }
+      const payload = { method, label: label || method, details, directions: selectedDirections, is_default: isDefault }
       if (initial.id) {
         await updateConvexoAccount(privyToken, initial.id, payload)
       } else {
@@ -288,22 +296,35 @@ export function ConvexoAccountForm({ privyToken, onSave, initial = {} }: Convexo
             />
           </div>
 
-          {/* Direction */}
+          {/* Directions — multi-select */}
           <div>
-            <label style={labelStyle}>Disponible para</label>
+            <label style={labelStyle}>Disponible para <span style={{ color: 'rgba(186,214,235,0.4)', fontWeight: 400 }}>(selecciona uno o más)</span></label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {DIRECTIONS.map((d) => (
-                <button key={d.value} type="button"
-                  onClick={() => set('direction', d.value)}
-                  style={{
-                    padding: '10px 14px', borderRadius: 8, border: '1px solid', textAlign: 'left', cursor: 'pointer',
-                    borderColor: details.direction === d.value ? '#10b981' : 'rgba(186,214,235,0.2)',
-                    background: details.direction === d.value ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.05)',
-                  }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: details.direction === d.value ? '#10b981' : 'rgba(255,255,255,0.7)' }}>{d.label}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)', marginTop: 2 }}>{d.desc}</div>
-                </button>
-              ))}
+              {DIRECTIONS.map((d) => {
+                const selected = selectedDirections.includes(d.value)
+                return (
+                  <button key={d.value} type="button"
+                    onClick={() => toggleDirection(d.value)}
+                    style={{
+                      padding: '10px 14px', borderRadius: 8, border: '1px solid', textAlign: 'left', cursor: 'pointer',
+                      borderColor: selected ? '#10b981' : 'rgba(186,214,235,0.2)',
+                      background: selected ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.05)',
+                      display: 'flex', alignItems: 'flex-start', gap: 10,
+                    }}>
+                    <span style={{
+                      width: 16, height: 16, borderRadius: 4, border: `2px solid ${selected ? '#10b981' : 'rgba(186,214,235,0.3)'}`,
+                      background: selected ? '#10b981' : 'transparent', flexShrink: 0, marginTop: 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'white', fontWeight: 900,
+                    }}>
+                      {selected ? '✓' : ''}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: selected ? '#10b981' : 'rgba(255,255,255,0.7)' }}>{d.label}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)', marginTop: 2 }}>{d.desc}</div>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </div>
 

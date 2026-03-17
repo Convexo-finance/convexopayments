@@ -245,13 +245,14 @@ export async function adminUpdateWalletRequest(
     spreadPct?: number
     rate?: number
     copAmount?: number
+    txnUrl?: string
   } = {}
 ) {
   await requireAdmin(privyToken)
   const supabase = await createClient(privyToken)
   const { data: req } = await supabase
     .from('wallet_requests')
-    .select()
+    .select('*, users(email, profiles(first_name, last_name))')
     .eq('id', requestId)
     .single()
   if (!req) throw new Error('NOT_FOUND')
@@ -264,9 +265,10 @@ export async function adminUpdateWalletRequest(
   const update: Record<string, unknown> = {
     status: newStatus,
     updated_at: new Date().toISOString(),
-    ...(opts.proofUrl   ? { proof_url:  opts.proofUrl }   : {}),
-    ...(opts.rejectionReason ? { rejection_reason: opts.rejectionReason } : {}),
-    ...(opts.adminNote  ? { admin_note: opts.adminNote }  : {}),
+    ...(opts.proofUrl        ? { proof_url:         opts.proofUrl }        : {}),
+    ...(opts.rejectionReason ? { rejection_reason:  opts.rejectionReason } : {}),
+    ...(opts.adminNote       ? { admin_note:        opts.adminNote }        : {}),
+    ...(opts.txnUrl          ? { txn_url:           opts.txnUrl }           : {}),
   }
 
   // Admin can override spread, rate, and COP amount at any step (stored in metadata)
@@ -278,6 +280,17 @@ export async function adminUpdateWalletRequest(
     const amount   = Number(req.amount)
 
     update.spread_pct = spread
+
+    if (opts.rate != null) {
+      // Store admin-confirmed rate in its own column
+      update.admin_rate = opts.rate
+      // Compute official spread relative to provider rate
+      const providerRate = Number(req.provider_rate)
+      if (providerRate > 0) {
+        update.official_spread = Math.abs(opts.rate - providerRate) / providerRate
+      }
+    }
+
     if (baseRate) {
       const computedCop = req.type === 'CASH_IN'
         ? amount * baseRate * (1 + spread)
@@ -295,6 +308,48 @@ export async function adminUpdateWalletRequest(
     const fn = req.type === 'CASH_IN' ? 'increment_balance' : 'decrement_balance'
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.rpc as any)(fn, { user_id: req.user_id, amount: req.amount })
+
+    // Send receipt email
+    try {
+      const { Resend } = await import('resend')
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const userRow = req.users as any
+      const userEmail = userRow?.email
+      if (userEmail) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const meta = (req.metadata as any) ?? {}
+        const adminRate = Number(update.admin_rate ?? req.admin_rate ?? meta.usdcop_rate ?? 0)
+        const copAmount = Number(meta.cop_amount ?? 0)
+        const spread = Number(update.spread_pct ?? req.spread_pct ?? 0.01)
+        const typeLabel = req.type === 'CASH_IN' ? 'COMPRAR' : 'VENDER'
+        await resend.emails.send({
+          from: 'pay@convexo.xyz',
+          to: userEmail,
+          subject: `Orden ${typeLabel} liquidada — #${req.id.slice(0, 8).toUpperCase()}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
+              <h2 style="color:#081F5C">Orden OTC Liquidada ✓</h2>
+              <p>Tu operación <strong>${typeLabel}</strong> ha sido completada.</p>
+              <table style="width:100%;border-collapse:collapse;margin:16px 0">
+                <tr><td style="padding:6px 0;color:#666">ID</td><td style="font-family:monospace">#${req.id.slice(0, 8).toUpperCase()}</td></tr>
+                <tr><td style="padding:6px 0;color:#666">Tipo</td><td>${typeLabel}</td></tr>
+                <tr><td style="padding:6px 0;color:#666">Monto</td><td>${Number(req.amount).toLocaleString()} ${req.currency}</td></tr>
+                ${copAmount ? `<tr><td style="padding:6px 0;color:#666">Equivalente COP</td><td><strong>$${copAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</strong></td></tr>` : ''}
+                ${adminRate ? `<tr><td style="padding:6px 0;color:#666">Tasa aplicada</td><td>${adminRate.toLocaleString('es-CO', { maximumFractionDigits: 0 })} COP/USD</td></tr>` : ''}
+                <tr><td style="padding:6px 0;color:#666">Spread</td><td>${(spread * 100).toFixed(2)}%</td></tr>
+                <tr><td style="padding:6px 0;color:#666">Fecha</td><td>${new Date().toLocaleDateString('es-CO')}</td></tr>
+              </table>
+              ${req.proof_url ? `<p><a href="${req.proof_url}" style="color:#334EAC">Ver comprobante de pago →</a></p>` : ''}
+              <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
+              <p style="color:#999;font-size:12px">Convexo · pay.convexo.xyz</p>
+            </div>
+          `,
+        })
+      }
+    } catch (err) {
+      console.error('[adminUpdateWalletRequest] Receipt email failed:', err)
+    }
   }
 
   // Legacy COMPLETADO support
