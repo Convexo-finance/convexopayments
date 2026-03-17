@@ -2,11 +2,14 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useWallets } from '@privy-io/react-auth'
+import { useWallets as useSolanaWallets } from '@privy-io/react-auth/solana'
 import { Modal } from '@/components/ui/Modal'
 
 const TOKENS = ['USDC', 'USDT'] as const
 type Token = typeof TOKENS[number]
 type ModalType = 'deposit' | 'withdraw' | null
+type DepositChain = 'ethereum' | 'solana'
+type WithdrawChain = 'ethereum' | 'tron' | 'solana'
 
 interface OwnProfile { id: string; method: string; label: string | null }
 
@@ -25,10 +28,17 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [depositChain, setDepositChain] = useState<DepositChain>('ethereum')
+  const [withdrawChain, setWithdrawChain] = useState<WithdrawChain>('ethereum')
 
   const { wallets } = useWallets()
   const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy')
-  const depositAddress = embeddedWallet?.address ?? ''
+
+  const { wallets: solanaWallets, ready: solanaReady } = useSolanaWallets()
+  const solanaEmbedded = solanaWallets[0]
+  const solanaAddress = solanaEmbedded?.address ?? ''
+
+  const depositAddress = depositChain === 'solana' ? solanaAddress : (embeddedWallet?.address ?? '')
 
   function closeModal() {
     setModal(null)
@@ -36,6 +46,8 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
     setDestAddress('')
     setError(null)
     setDone(false)
+    setDepositChain('ethereum')
+    setWithdrawChain('ethereum')
   }
 
   async function handleWithdraw() {
@@ -45,7 +57,7 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
       const { createWalletRequest } = await import('@/lib/actions/wallet')
       await createWalletRequest(privyToken, {
         type: 'CRYPTO_WITHDRAW', amount: parseFloat(amount), currency: token,
-        metadata: { dest_address: destAddress },
+        metadata: { dest_address: destAddress, destination_chain: withdrawChain },
       })
       setDone(true)
     } catch (err) {
@@ -77,7 +89,26 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
 
       {/* ── Deposit Modal ── */}
       <Modal open={modal === 'deposit'} onClose={closeModal} title="Deposit" width={480}>
-        {!depositAddress ? (
+        {/* Chain tabs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {(['ethereum', 'solana'] as DepositChain[]).map((chain) => (
+            <button
+              key={chain}
+              type="button"
+              onClick={() => setDepositChain(chain)}
+              style={{
+                padding: '6px 16px', borderRadius: 20, border: `1px solid ${depositChain === chain ? '#334EAC' : 'rgba(186,214,235,0.2)'}`,
+                background: depositChain === chain ? 'rgba(51,78,172,0.25)' : 'rgba(255,255,255,0.04)',
+                color: depositChain === chain ? '#BAD6EB' : 'rgba(186,214,235,0.55)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                textTransform: 'capitalize',
+              }}
+            >
+              {chain === 'ethereum' ? 'Ethereum' : 'Solana'}
+            </button>
+          ))}
+        </div>
+
+        {(depositChain === 'solana' ? (!solanaReady || !solanaAddress) : !embeddedWallet?.address) ? (
           <div style={{ background: '#fef3c7', borderRadius: 10, padding: '16px 20px' }}>
             <p style={{ fontSize: 13, color: '#92400e', fontWeight: 600 }}>Wallet loading…</p>
             <p style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>Your embedded wallet is initializing. Try refreshing.</p>
@@ -85,7 +116,9 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
             <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.7)', textAlign: 'center' }}>
-              This is your personal Ethereum wallet. Send USDC or USDT here and Convexo will credit your balance.
+              {depositChain === 'ethereum'
+                ? 'This is your personal Ethereum wallet. Send USDC or USDT here and Convexo will credit your balance.'
+                : 'This is your personal Solana wallet. Send USDC or USDT (SPL) here and Convexo will credit your balance.'}
             </p>
             {/* QR */}
             <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 16, border: '1px solid rgba(186,214,235,0.1)', padding: 16 }}>
@@ -97,8 +130,17 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
             </div>
             {/* Tags */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <Tag label="Ethereum" color="#BAD6EB" text="#081F5C" />
-              <Tag label="ERC-20" color="#d1fae5" text="#065f46" />
+              {depositChain === 'ethereum' ? (
+                <>
+                  <Tag label="Ethereum" color="#BAD6EB" text="#081F5C" />
+                  <Tag label="ERC-20" color="#d1fae5" text="#065f46" />
+                </>
+              ) : (
+                <>
+                  <Tag label="Solana" color="#BAD6EB" text="#081F5C" />
+                  <Tag label="SPL" color="#d1fae5" text="#065f46" />
+                </>
+              )}
             </div>
             {/* Address */}
             <div style={{ width: '100%', background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
@@ -113,7 +155,11 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
             {/* Warning */}
             <div style={{ background: '#fef3c7', borderRadius: 10, padding: '12px 16px', width: '100%' }}>
               <p style={{ fontSize: 12, color: '#92400e', fontWeight: 600, marginBottom: 2 }}>Important</p>
-              <p style={{ fontSize: 12, color: '#b45309' }}>Only send <strong>USDC or USDT on Ethereum (ERC-20)</strong>. Wrong network or token = permanent loss.</p>
+              <p style={{ fontSize: 12, color: '#b45309' }}>
+                {depositChain === 'ethereum'
+                  ? <>Only send <strong>USDC or USDT on Ethereum (ERC-20)</strong>. Wrong network or token = permanent loss.</>
+                  : <>Only send <strong>USDC or USDT on Solana (SPL)</strong>. Wrong network or token = permanent loss.</>}
+              </p>
             </div>
           </div>
         )}
@@ -135,6 +181,27 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
             <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.7)' }}>
               Available: <strong style={{ color: 'rgba(255,255,255,0.9)' }}>{balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC</strong>
             </p>
+            {/* Chain selector */}
+            <div>
+              <label style={labelStyle}>Network</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {(['ethereum', 'tron', 'solana'] as WithdrawChain[]).map((chain) => (
+                  <button
+                    key={chain}
+                    type="button"
+                    onClick={() => setWithdrawChain(chain)}
+                    style={{
+                      padding: '6px 14px', borderRadius: 20, border: `1px solid ${withdrawChain === chain ? '#334EAC' : 'rgba(186,214,235,0.2)'}`,
+                      background: withdrawChain === chain ? 'rgba(51,78,172,0.25)' : 'rgba(255,255,255,0.04)',
+                      color: withdrawChain === chain ? '#BAD6EB' : 'rgba(186,214,235,0.55)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {chain === 'ethereum' ? 'Ethereum' : chain === 'tron' ? 'Tron' : 'Solana'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Token</label>
@@ -152,7 +219,12 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
             </div>
             <div>
               <label style={labelStyle}>Destination wallet address</label>
-              <input style={inputStyle} placeholder="0x..." value={destAddress} onChange={(e) => setDestAddress(e.target.value)} />
+              <input
+                style={inputStyle}
+                placeholder={withdrawChain === 'ethereum' ? '0x...' : withdrawChain === 'tron' ? 'T...' : 'Base58 address...'}
+                value={destAddress}
+                onChange={(e) => setDestAddress(e.target.value)}
+              />
             </div>
             {amountNum > balance && <p style={{ color: '#ef4444', fontSize: 12 }}>Amount exceeds your balance.</p>}
             {error && <p style={{ color: '#ef4444', fontSize: 13 }}>{error}</p>}

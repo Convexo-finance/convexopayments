@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useWallets } from '@privy-io/react-auth'
+import { useWallets as useSolanaWallets } from '@privy-io/react-auth/solana'
 import QRCode from 'react-qr-code'
 
 const DEFAULT_SPREAD = 0.01
@@ -50,6 +51,7 @@ export function OtcWizard({
   // Step 2 COMPRAR — receive wallet
   const [walletSource, setWalletSource] = useState<WalletSource>('embedded')
   const [selectedEmbeddedAddress, setSelectedEmbeddedAddress] = useState('')
+  const [embeddedChain, setEmbeddedChain] = useState<'ethereum' | 'solana'>('ethereum')
   const [externalChain, setExternalChain] = useState<string>(CHAINS[0])
   const [externalAddress, setExternalAddress] = useState('')
 
@@ -68,6 +70,9 @@ export function OtcWizard({
 
   const { wallets } = useWallets()
   const embeddedWallets = wallets.filter((w) => w.walletClientType === 'privy')
+
+  const { wallets: solanaWallets, ready: solanaReady } = useSolanaWallets()
+  const solanaEmbedded = solanaWallets[0]
 
   const amountNum = parseFloat(amount) || 0
   const cop = rate
@@ -101,12 +106,13 @@ export function OtcWizard({
   function reset() {
     setStep(1); setAmount(''); setError(null)
     setWalletSource('embedded'); setExternalAddress(''); setExternalChain(CHAINS[0])
+    setEmbeddedChain('ethereum')
     setDestinationProfileId(''); setSelectedConvexoId(''); setSelectedVenderConvexoId('')
   }
 
   // Derived: the user's chosen receive address for COMPRAR
   const receiveAddress = walletSource === 'embedded' ? selectedEmbeddedAddress : externalAddress
-  const receiveChain = walletSource === 'embedded' ? 'Ethereum' : externalChain
+  const receiveChain = walletSource === 'embedded' ? (embeddedChain === 'solana' ? 'Solana' : 'Ethereum') : externalChain
 
   // Step validation
   const step1Valid = amountNum > 0 && !!rate && (tab === 'vender' ? amountNum <= balance : true)
@@ -214,14 +220,15 @@ export function OtcWizard({
           </div>
 
           {/* Embedded wallets */}
-          {embeddedWallets.length > 0 && (
+          {(embeddedWallets.length > 0 || (solanaReady && solanaEmbedded)) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={labelStyle}>Tu wallet Convexo (Ethereum)</span>
+              <span style={labelStyle}>Tu wallet Convexo</span>
+              {/* EVM embedded wallets */}
               {embeddedWallets.map((w) => (
                 <SelectableCard
                   key={w.address}
-                  selected={walletSource === 'embedded' && selectedEmbeddedAddress === w.address}
-                  onClick={() => { setWalletSource('embedded'); setSelectedEmbeddedAddress(w.address) }}
+                  selected={walletSource === 'embedded' && selectedEmbeddedAddress === w.address && embeddedChain === 'ethereum'}
+                  onClick={() => { setWalletSource('embedded'); setSelectedEmbeddedAddress(w.address); setEmbeddedChain('ethereum') }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,126,234,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>⬡</div>
@@ -235,6 +242,24 @@ export function OtcWizard({
                   </div>
                 </SelectableCard>
               ))}
+              {/* Solana embedded wallet */}
+              {solanaReady && solanaEmbedded && (
+                <SelectableCard
+                  selected={walletSource === 'embedded' && embeddedChain === 'solana'}
+                  onClick={() => { setWalletSource('embedded'); setSelectedEmbeddedAddress(solanaEmbedded.address); setEmbeddedChain('solana') }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(153,69,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>◎</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Wallet embebida</div>
+                      <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(186,214,235,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {solanaEmbedded.address}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(153,69,255,0.2)', color: '#9945FF', padding: '2px 8px', borderRadius: 99, flexShrink: 0, marginLeft: 'auto' }}>Solana</span>
+                  </div>
+                </SelectableCard>
+              )}
             </div>
           )}
 
