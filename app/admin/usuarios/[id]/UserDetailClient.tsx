@@ -7,6 +7,13 @@ const ID_TYPE_LABELS: Record<string, string> = {
   PA: 'Pasaporte',
 }
 
+const MONTHLY_VOLUME_LABELS: Record<string, string> = {
+  '0-1k':   '$0 – $1,000 USD',
+  '1k-5k':  '$1,000 – $5,000 USD',
+  '5k-20k': '$5,000 – $20,000 USD',
+  '+20k':   'Más de $20,000 USD',
+}
+
 interface Profile {
   first_name: string | null
   last_name: string | null
@@ -22,6 +29,7 @@ interface Profile {
   instagram: string | null
   twitter: string | null
   linkedin: string | null
+  monthly_volume: string | null
   id_doc_url: string | null
   rut_url: string | null
   rut_status: string | null
@@ -142,6 +150,10 @@ export function UserDetailClient({ user, privyToken }: UserDetailClientProps) {
             <InfoField
               label="Address"
               value={[profile.address, profile.city, profile.state, profile.country].filter(Boolean).join(', ') || null}
+            />
+            <InfoField
+              label="Monthly Volume"
+              value={profile.monthly_volume ? MONTHLY_VOLUME_LABELS[profile.monthly_volume] ?? profile.monthly_volume : null}
             />
           </div>
           {/* Social */}

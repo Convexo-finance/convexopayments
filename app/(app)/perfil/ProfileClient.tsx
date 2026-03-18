@@ -50,6 +50,7 @@ export function ProfileClient({ privyToken, initialProfile }: ProfileClientProps
     proof_of_address_url: str('proof_of_address_url'),
     rut_status: str('rut_status'),
     rut_admin_note: str('rut_admin_note'),
+    monthly_volume: str('monthly_volume'),
   })
 
   // Per-section draft state (only active while editing)
@@ -69,6 +70,7 @@ export function ProfileClient({ privyToken, initialProfile }: ProfileClientProps
     state_code: profile.state_code,
     city: profile.city,
     postal_code: profile.postal_code,
+    monthly_volume: profile.monthly_volume,
   })
   const [verSaving, setVerSaving] = useState(false)
   const [verSaveError, setVerSaveError] = useState<string | null>(null)
@@ -316,6 +318,24 @@ export function ProfileClient({ privyToken, initialProfile }: ProfileClientProps
           />
         </div>
 
+        {/* Monthly volume */}
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(186,214,235,0.5)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>
+            Volumen Mensual Estimado
+          </p>
+          <select
+            style={inputStyle}
+            value={verDraft.monthly_volume}
+            onChange={(e) => setVerDraft((d) => ({ ...d, monthly_volume: e.target.value }))}
+          >
+            <option value="">Seleccionar rango...</option>
+            <option value="0-1k">$0 – $1,000 USD</option>
+            <option value="1k-5k">$1,000 – $5,000 USD</option>
+            <option value="5k-20k">$5,000 – $20,000 USD</option>
+            <option value="+20k">Más de $20,000 USD</option>
+          </select>
+        </div>
+
         {/* Save fields button */}
         {verSaveError && <p style={{ color: '#ef4444', fontSize: 12, marginBottom: 8 }}>{verSaveError}</p>}
         <button
@@ -401,7 +421,7 @@ export function ProfileClient({ privyToken, initialProfile }: ProfileClientProps
         </div>
 
         {/* Submit for verification */}
-        {!isEnabled && rutStatus !== 'PENDIENTE' && rutStatus !== 'VERIFICADO' && (
+        {(!rutStatus || rutStatus === 'RECHAZADO') && (
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(186,214,235,0.08)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
               <CheckItem done={hasIDDoc} label="Documento de identidad subido" />
