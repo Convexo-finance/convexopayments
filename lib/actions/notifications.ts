@@ -10,6 +10,9 @@ function getResend() {
  * Insert a notification for any user and attempt to send an email.
  * Uses service client because it writes to other users' rows (bypasses RLS).
  * Email errors are logged to notification_errors — never thrown.
+ *
+ * Pass `emailHtml` to send a rich HTML email instead of the default plain-text fallback.
+ * Pass `emailSubject` to override the subject (defaults to `title`).
  */
 export async function createNotification(
   userId: string,
@@ -17,7 +20,8 @@ export async function createNotification(
   title: string,
   body: string,
   relatedId?: string,
-  relatedType?: string
+  relatedType?: string,
+  email?: { emailHtml?: string; emailSubject?: string }
 ) {
   const supabase = await createServiceClient()
   const { data: notif, error } = await supabase
@@ -46,8 +50,8 @@ export async function createNotification(
       await getResend().emails.send({
         from: 'pay@convexo.xyz',
         to: user.email,
-        subject: title,
-        html: `<p>${body}</p>`,
+        subject: email?.emailSubject ?? title,
+        html: email?.emailHtml ?? `<p>${body}</p>`,
       })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)

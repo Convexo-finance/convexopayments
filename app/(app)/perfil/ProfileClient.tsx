@@ -624,40 +624,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ── Social Icons ──
 function InstagramIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="ig" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#f09433" />
-          <stop offset="25%" stopColor="#e6683c" />
-          <stop offset="50%" stopColor="#dc2743" />
-          <stop offset="75%" stopColor="#cc2366" />
-          <stop offset="100%" stopColor="#bc1888" />
-        </linearGradient>
-      </defs>
-      <rect width="24" height="24" rx="5" fill="url(#ig)" />
-      <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.8" fill="none" />
-      <circle cx="17.5" cy="6.5" r="1.1" fill="white" />
-    </svg>
-  )
+  return <img src="/socials/instagram.png" alt="Instagram" width={20} height={20} style={{ display: 'block', borderRadius: 4 }} />
 }
 
 function XIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <rect width="24" height="24" rx="5" fill="#000" />
-      <path d="M13.6 10.94L18.4 5h-1.15l-4.17 4.7L9.6 5H5.5l5.03 7.1L5.5 19h1.15l4.4-4.96L14.4 19h4.1L13.6 10.94zM11.7 13.3l-.5-.7-4.1-5.8h1.75l3.3 4.6.5.7 4.3 6.05h-1.75l-3.5-4.85z" fill="white" />
-    </svg>
-  )
+  return <img src="/socials/x.png" alt="X" width={20} height={20} style={{ display: 'block', borderRadius: 4 }} />
 }
 
 function LinkedInIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <rect width="24" height="24" rx="5" fill="#0077b5" />
-      <path d="M7.1 9.5H5V19h2.1V9.5zM6.05 8.5a1.22 1.22 0 110-2.44 1.22 1.22 0 010 2.44zM19 19h-2.1v-4.65c0-1.1-.4-1.85-1.4-1.85-.75 0-1.2.5-1.4 1-.07.17-.09.42-.09.67V19H11.9s.03-8.1 0-8.95h2.1v1.27c.28-.43.78-1.05 1.9-1.05 1.38 0 2.42.9 2.42 2.84V19z" fill="white" />
-    </svg>
-  )
+  return <img src="/socials/linkdin.png" alt="LinkedIn" width={20} height={20} style={{ display: 'block', borderRadius: 4 }} />
 }
 
 function GlobeIcon() {

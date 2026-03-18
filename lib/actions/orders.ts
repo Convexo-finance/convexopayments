@@ -2,6 +2,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getSessionUser } from './auth'
 import { createNotification } from './notifications'
+import { buildOrderCancelledEmail, buildOrderCreatedEmail } from '@/lib/emails/orderEmails'
 
 export async function uploadInvoice(privyToken: string, file: File) {
   const user = await getSessionUser(privyToken)
@@ -35,7 +36,7 @@ export async function uploadUserProof(privyToken: string, file: File) {
   return publicUrl
 }
 
-const CANCEL_ALLOWED = ['DRAFT', 'OPENED']
+const CANCEL_ALLOWED = ['DRAFT', 'OPENED', 'ACCEPTED']
 
 export type OrderInput = {
   type: 'PAY' | 'COLLECT'
@@ -112,13 +113,34 @@ export async function submitOrder(privyToken: string, orderId: string) {
     .select()
     .single()
   if (error) throw error
+
+  // Fetch entity name for the rich confirmation email
+  const entityTable = updated.type === 'PAY' ? 'suppliers' : 'clients'
+  const { data: entity } = await supabase
+    .from(entityTable)
+    .select('internal_name')
+    .eq('id', updated.entity_id)
+    .single()
+
   await createNotification(
     user.id,
     'ORDER_STATUS',
     'Order opened',
     'Your order is open. Please complete your payment to proceed.',
     orderId,
-    'ORDER'
+    'ORDER',
+    {
+      emailSubject: `Orden recibida — #${updated.id.slice(0, 8).toUpperCase()}`,
+      emailHtml: buildOrderCreatedEmail({
+        orderId: updated.id,
+        orderType: updated.type as 'PAY' | 'COLLECT',
+        amount: updated.amount ?? 0,
+        currency: updated.currency ?? '',
+        entityName: entity?.internal_name ?? null,
+        reference: updated.reference,
+        dueDate: updated.due_date,
+      }),
+    }
   )
   return updated
 }
@@ -139,7 +161,7 @@ export async function confirmPayment(
     .eq('id', orderId)
     .eq('user_id', user.id)
     .single()
-  if (!order || order.status !== 'OPENED') throw new Error('INVALID_TRANSITION')
+  if (!order || order.status !== 'ACCEPTED') throw new Error('INVALID_TRANSITION')
   const history = await appendStatusHistory(supabase, orderId, 'ORDERED', user.id)
   const update: Record<string, unknown> = {
     status: 'ORDERED',
@@ -191,13 +213,33 @@ export async function cancelOrder(privyToken: string, orderId: string) {
     .select()
     .single()
   if (error) throw error
+
+  // Fetch entity name for the cancellation email
+  const cancelEntityTable = updated.type === 'PAY' ? 'suppliers' : 'clients'
+  const { data: cancelEntity } = await supabase
+    .from(cancelEntityTable)
+    .select('internal_name')
+    .eq('id', updated.entity_id)
+    .single()
+
   await createNotification(
     user.id,
     'ORDER_STATUS',
     'Order cancelled',
     'Your order has been cancelled.',
     orderId,
-    'ORDER'
+    'ORDER',
+    {
+      emailSubject: `Orden cancelada — #${updated.id.slice(0, 8).toUpperCase()}`,
+      emailHtml: buildOrderCancelledEmail({
+        orderId: updated.id,
+        orderType: updated.type as 'PAY' | 'COLLECT',
+        amount: updated.amount ?? 0,
+        currency: updated.currency ?? '',
+        entityName: cancelEntity?.internal_name ?? null,
+        reference: updated.reference,
+      }),
+    }
   )
   return updated
 }
@@ -262,13 +304,14 @@ export async function getOrderById(privyToken: string, orderId: string) {
     const table = data.type === 'PAY' ? 'suppliers' : 'clients'
     const { data: entity } = await supabase
       .from(table)
-      .select('internal_name')
+      .select('internal_name, legal_name, office_country, contact_email, company_phone, contact_name, contact_phone')
       .eq('id', data.entity_id)
       .single()
     entity_name = entity?.internal_name ?? null
+    return { ...data, entity_name, entity: entity ?? null }
   }
 
-  return { ...data, entity_name }
+  return { ...data, entity_name, entity: null }
 }
 
 export async function updateOrderDraft(

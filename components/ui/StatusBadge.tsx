@@ -2,7 +2,9 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   // Payment orders
   DRAFT:       { bg: '#f3f4f6', color: '#6b7280' },
   OPENED:      { bg: '#dbeafe', color: '#1d4ed8' },
-  ORDERED:     { bg: '#ede9fe', color: '#6d28d9' },
+  ACCEPTED:    { bg: '#ede9fe', color: '#5b21b6' },
+  ORDERED:     { bg: '#e0e7ff', color: '#3730a3' },
+  PROCESSING:  { bg: '#fef3c7', color: '#92400e' },
   EN_REVISION: { bg: '#fef3c7', color: '#92400e' },
   PROCESANDO:  { bg: '#e0e7ff', color: '#3730a3' },
   PAYED:       { bg: '#d1fae5', color: '#065f46' },
@@ -27,7 +29,9 @@ const STATUS_LABELS: Record<string, string> = {
   // Payment orders
   DRAFT:       'Draft',
   OPENED:      'Opened',
+  ACCEPTED:    'Accepted',
   ORDERED:     'Ordered',
+  PROCESSING:  'Processing',
   EN_REVISION: 'Under Review',
   PROCESANDO:  'Processing',
   PAYED:       'Payed',

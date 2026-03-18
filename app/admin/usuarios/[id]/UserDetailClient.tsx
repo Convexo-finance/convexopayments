@@ -162,18 +162,21 @@ export function UserDetailClient({ user, privyToken }: UserDetailClientProps) {
               <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(186,214,235,0.4)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>Social</div>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                 {profile.instagram && (
-                  <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={socialLink}>
-                    📷 {profile.instagram}
+                  <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ ...socialLink, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <img src="/socials/instagram.png" alt="" width={16} height={16} style={{ display: 'block', borderRadius: 3 }} />
+                    {profile.instagram}
                   </a>
                 )}
                 {profile.twitter && (
-                  <a href={`https://x.com/${profile.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={socialLink}>
-                    𝕏 {profile.twitter}
+                  <a href={`https://x.com/${profile.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ ...socialLink, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <img src="/socials/x.png" alt="" width={16} height={16} style={{ display: 'block', borderRadius: 3 }} />
+                    {profile.twitter}
                   </a>
                 )}
                 {profile.linkedin && (
-                  <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" style={socialLink}>
-                    in LinkedIn →
+                  <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" style={{ ...socialLink, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <img src="/socials/linkdin.png" alt="" width={16} height={16} style={{ display: 'block', borderRadius: 3 }} />
+                    LinkedIn →
                   </a>
                 )}
               </div>

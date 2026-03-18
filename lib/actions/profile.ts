@@ -136,11 +136,12 @@ export async function requestVerification(privyToken: string) {
  */
 export async function completeOnboarding(
   privyToken: string,
-  data: { first_name: string; last_name: string; phone_country_code: string; phone: string }
+  data: { first_name: string; last_name: string; contact_email?: string; phone_country_code: string; phone: string }
 ) {
   return upsertProfile(privyToken, {
     first_name: data.first_name,
     last_name: data.last_name,
+    contact_email: data.contact_email,
     phone_country_code: data.phone_country_code,
     phone: data.phone,
   })

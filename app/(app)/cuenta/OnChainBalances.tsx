@@ -167,10 +167,6 @@ export function OnChainBalances() {
         // Which chains this token has on EVM
         const evmChains = EVM_CHAINS.filter((c) => token.evmContracts[c.id])
         const hasSolana = !!token.solanaMint && !!solanaAddress
-        const subLabel  = [
-          ...evmChains.map((c) => c.name.slice(0, 3).toUpperCase()),
-          hasSolana ? 'SOL' : null,
-        ].filter(Boolean).join(' · ')
 
         return (
           <div key={token.symbol} style={{ borderBottom: i < TOKENS.length - 1 ? '1px solid rgba(186,214,235,0.07)' : 'none' }}>
@@ -185,7 +181,6 @@ export function OnChainBalances() {
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{token.symbol}</div>
-                <div style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)', marginTop: 2 }}>{subLabel}</div>
               </div>
 
               <div style={{ textAlign: 'right' }}>
@@ -238,19 +233,6 @@ export function OnChainBalances() {
         )
       })}
 
-      {/* Footer */}
-      <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(186,214,235,0.07)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {evmAddress && (
-          <p style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)', fontFamily: 'monospace', margin: 0 }}>
-            EVM: {evmAddress.slice(0, 6)}…{evmAddress.slice(-4)}
-          </p>
-        )}
-        {solanaAddress && (
-          <p style={{ fontSize: 11, color: 'rgba(186,214,235,0.4)', fontFamily: 'monospace', margin: 0 }}>
-            SOL: {solanaAddress.slice(0, 6)}…{solanaAddress.slice(-4)}
-          </p>
-        )}
-      </div>
     </div>
   )
 }

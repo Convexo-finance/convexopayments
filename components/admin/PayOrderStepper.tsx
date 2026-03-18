@@ -1,15 +1,20 @@
 'use client'
 
 const PAY_STEPS = [
-  { status: 'OPENED',      label: 'Abierto' },
-  { status: 'EN_REVISION', label: 'En Revisión' },
-  { status: 'PROCESANDO',  label: 'Procesando' },
-  { status: 'PAYED',       label: 'Pagado' },
+  { status: 'OPENED',     label: 'Abierto' },
+  { status: 'ACCEPTED',   label: 'Aceptado' },
+  { status: 'ORDERED',    label: 'Ordenado' },
+  { status: 'PROCESSING', label: 'Procesando' },
+  { status: 'PAYED',      label: 'Pagado' },
 ]
 
 function getStepIndex(status: string) {
   if (status === 'RECHAZADO') return -1
-  const map: Record<string, number> = { OPENED: 0, ORDERED: 0, EN_REVISION: 1, PROCESANDO: 2, PAYED: 3 }
+  const map: Record<string, number> = {
+    OPENED: 0, ACCEPTED: 1, ORDERED: 2, PROCESSING: 3, PAYED: 4,
+    // Legacy
+    EN_REVISION: 2, PROCESANDO: 3,
+  }
   return map[status] ?? 0
 }
 
@@ -61,9 +66,11 @@ export function PayOrderStepper({ status }: { status: string }) {
 interface HistoryEntry { status: string; changed_at: string; changed_by?: string }
 
 const STATUS_LABELS: Record<string, string> = {
-  OPENED: 'Abierto', ORDERED: 'Ordenado', EN_REVISION: 'En Revisión',
-  PROCESANDO: 'Procesando', PAYED: 'Pagado', RECHAZADO: 'Rechazado',
-  DRAFT: 'Borrador',
+  DRAFT: 'Borrador', OPENED: 'Abierto', ACCEPTED: 'Aceptado',
+  ORDERED: 'Ordenado', PROCESSING: 'Procesando', PAYED: 'Pagado',
+  RECHAZADO: 'Rechazado', CANCELADO: 'Cancelado',
+  // Legacy
+  EN_REVISION: 'En Revisión', PROCESANDO: 'Procesando',
 }
 
 export function StatusTimeline({ history }: { history: HistoryEntry[] }) {

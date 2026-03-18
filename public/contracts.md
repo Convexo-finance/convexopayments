@@ -3,9 +3,18 @@
 USDC_ETH=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
 USDC_BASE=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
 USDC_ARBONE=0xaf88d065e77c8cC2239327C5EDb3A432268e5831
+USDC_SOL=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v                                                                              
 
 # USDT Addreses by Network
 ## Mainnet
 USDT_ETH=0xdAC17F958D2ee523a2206206994597C13D831ec7
 USDT_BASE=0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2 // Bridged USDT
 USDT_ARB=0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9 // USDT0
+USDT_SOL=Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB 
+    
+
+# ERUC Addreses by Network
+## Mainnet
+EURC_SOL=HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr                                                                                     
+EURC_ETH=0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c                                                                                    
+EURC_BASE=0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42                                                                                         

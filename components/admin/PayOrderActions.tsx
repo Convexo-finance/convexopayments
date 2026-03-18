@@ -2,23 +2,35 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileUpload } from '@/components/ui/FileUpload'
+import { AdminAcceptForm } from './AdminAcceptForm'
 
 interface PayOrderActionsProps {
   orderId: string
   status: string
   privyToken: string
+  orderAmount?: number | null
+  defaultFee?: number | null
+  defaultRate?: number | null
+  defaultFiatAmount?: number | null
+  defaultConvexoAccountId?: string | null
+  currency: string
+  fiatCurrency?: string | null
 }
 
-const NEXT_ACTION: Record<string, { label: string; next: string }> = {
-  OPENED:      { label: 'Mover a Revisión',   next: 'EN_REVISION' },
-  ORDERED:     { label: 'Mover a Revisión',   next: 'EN_REVISION' },
-  EN_REVISION: { label: 'Iniciar Proceso',    next: 'PROCESANDO' },
-  PROCESANDO:  { label: 'Marcar como Pagado', next: 'PAYED' },
-}
+const TERMINAL = ['PAYED', 'RECHAZADO', 'CANCELADO']
 
-const TERMINAL = ['PAYED', 'RECHAZADO']
-
-export function PayOrderActions({ orderId, status, privyToken }: PayOrderActionsProps) {
+export function PayOrderActions({
+  orderId,
+  status,
+  privyToken,
+  orderAmount,
+  defaultFee,
+  defaultRate,
+  defaultFiatAmount,
+  defaultConvexoAccountId,
+  currency,
+  fiatCurrency,
+}: PayOrderActionsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [rejecting, setRejecting] = useState(false)
@@ -28,18 +40,22 @@ export function PayOrderActions({ orderId, status, privyToken }: PayOrderActions
 
   if (TERMINAL.includes(status)) {
     return (
-      <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.4)' }}>Esta orden está en estado final. No hay acciones disponibles.</p>
+      <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.4)' }}>
+        Esta orden está en estado final. No hay acciones disponibles.
+      </p>
     )
   }
 
-  const next = NEXT_ACTION[status]
-
-  async function handleAdvance() {
+  async function handleAdvance(next: string) {
+    if (next === 'PAYED' && !proofUrl) {
+      setError('Debes subir el comprobante de pago antes de marcar como pagado.')
+      return
+    }
     setLoading(true); setError(null)
     try {
       const { adminUpdateOrderStatus } = await import('@/lib/actions/admin')
-      await adminUpdateOrderStatus(privyToken, orderId, next.next, {
-        proofUrl: status === 'PROCESANDO' ? proofUrl : undefined,
+      await adminUpdateOrderStatus(privyToken, orderId, next, {
+        proofUrl: next === 'PAYED' ? proofUrl : undefined,
       })
       router.refresh()
     } catch (err: unknown) {
@@ -60,10 +76,49 @@ export function PayOrderActions({ orderId, status, privyToken }: PayOrderActions
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {status === 'PROCESANDO' && (
-        <div>
-          <label style={labelStyle}>Comprobante de pago <span style={{ color: '#ef4444' }}>*</span></label>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* OPENED → Admin reviews and accepts */}
+      {status === 'OPENED' && (
+        <AdminAcceptForm
+          orderId={orderId}
+          privyToken={privyToken}
+          orderAmount={orderAmount}
+          defaultFee={defaultFee}
+          defaultRate={defaultRate}
+          defaultFiatAmount={defaultFiatAmount}
+          defaultConvexoAccountId={defaultConvexoAccountId}
+          currency={currency}
+          fiatCurrency={fiatCurrency}
+        />
+      )}
+
+      {/* ACCEPTED → Waiting for user payment, no admin advance action */}
+      {status === 'ACCEPTED' && (
+        <div style={{ background: 'rgba(91,33,182,0.08)', border: '1px solid rgba(91,33,182,0.2)', borderRadius: 8, padding: '10px 14px' }}>
+          <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.7)' }}>
+            Orden aceptada. Esperando que el usuario complete su pago.
+          </p>
+        </div>
+      )}
+
+      {/* ORDERED → Admin starts processing */}
+      {status === 'ORDERED' && (
+        <button
+          onClick={() => handleAdvance('PROCESSING')}
+          disabled={loading}
+          style={{ ...primaryBtn, opacity: loading ? 0.6 : 1 }}
+        >
+          {loading ? 'Procesando...' : 'Iniciar Procesamiento'}
+        </button>
+      )}
+
+      {/* PROCESSING → Admin uploads proof and marks paid */}
+      {status === 'PROCESSING' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <label style={labelStyle}>
+            Comprobante de pago al proveedor <span style={{ color: '#ef4444' }}>*</span>
+          </label>
           <FileUpload
             label="Subir comprobante (PDF, JPG, PNG)"
             accept=".pdf,.jpg,.jpeg,.png"
@@ -75,42 +130,44 @@ export function PayOrderActions({ orderId, status, privyToken }: PayOrderActions
               return url
             }}
           />
+          <button
+            onClick={() => handleAdvance('PAYED')}
+            disabled={loading || !proofUrl}
+            style={{ ...primaryBtn, opacity: (!proofUrl || loading) ? 0.5 : 1, cursor: (!proofUrl || loading) ? 'not-allowed' : 'pointer', background: '#10b981' }}
+          >
+            {loading ? 'Guardando...' : '✓ Marcar como Pagado'}
+          </button>
         </div>
       )}
 
-      {next && (
-        <button
-          onClick={handleAdvance}
-          disabled={loading || (status === 'PROCESANDO' && !proofUrl)}
-          style={{ ...primaryBtn, opacity: (status === 'PROCESANDO' && !proofUrl) ? 0.5 : 1, cursor: (status === 'PROCESANDO' && !proofUrl) ? 'not-allowed' : 'pointer' }}
-        >
-          {loading ? 'Procesando...' : next.label}
-        </button>
-      )}
-
-      {!rejecting ? (
-        <button onClick={() => setRejecting(true)} style={dangerOutlineBtn}>
-          Rechazar orden
-        </button>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <label style={labelStyle}>Motivo de rechazo</label>
-          <textarea
-            rows={3}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Explica el motivo..."
-            style={{ ...inputStyle, resize: 'vertical' as const }}
-          />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={handleReject} disabled={loading} style={dangerBtn}>
-              {loading ? '...' : 'Confirmar rechazo'}
+      {/* Reject — available for OPENED, ACCEPTED, ORDERED, PROCESSING */}
+      {['OPENED', 'ACCEPTED', 'ORDERED', 'PROCESSING'].includes(status) && (
+        <>
+          {!rejecting ? (
+            <button onClick={() => setRejecting(true)} style={dangerOutlineBtn}>
+              Rechazar orden
             </button>
-            <button onClick={() => { setRejecting(false); setReason('') }} style={secondaryBtn}>
-              Cancelar
-            </button>
-          </div>
-        </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={labelStyle}>Motivo de rechazo</label>
+              <textarea
+                rows={3}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Explica el motivo..."
+                style={{ ...inputStyle, resize: 'vertical' as const }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={handleReject} disabled={loading} style={dangerBtn}>
+                  {loading ? '...' : 'Confirmar rechazo'}
+                </button>
+                <button onClick={() => { setRejecting(false); setReason('') }} style={secondaryBtn}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {error && <p style={{ color: '#ef4444', fontSize: 12 }}>{error}</p>}

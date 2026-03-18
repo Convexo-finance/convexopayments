@@ -13,6 +13,7 @@ export function OnboardingClient({ privyToken }: Props) {
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
+    contact_email: '',
     phone_country_code: '+57',
     phone: '',
   })
@@ -27,6 +28,8 @@ export function OnboardingClient({ privyToken }: Props) {
     if (!form.first_name.trim() || !form.last_name.trim() || !form.phone.trim()) return
     setStep(2)
   }
+
+  const continueDisabled = !form.first_name.trim() || !form.last_name.trim() || !form.phone.trim()
 
   async function handleSubmit() {
     setLoading(true)
@@ -114,6 +117,17 @@ export function OnboardingClient({ privyToken }: Props) {
             </div>
 
             <div>
+              <label style={labelStyle}>Email *</label>
+              <input
+                type="email"
+                style={inputStyle}
+                placeholder="correo@ejemplo.com"
+                value={form.contact_email}
+                onChange={(e) => set('contact_email', e.target.value)}
+              />
+            </div>
+
+            <div>
               <label style={labelStyle}>Teléfono *</label>
               <PhoneInput
                 countryCode={form.phone_country_code}
@@ -125,12 +139,12 @@ export function OnboardingClient({ privyToken }: Props) {
 
             <button
               onClick={handleContinue}
-              disabled={!form.first_name.trim() || !form.last_name.trim() || !form.phone.trim()}
+              disabled={continueDisabled}
               style={{
                 ...primaryBtn,
                 marginTop: 8,
-                opacity: (!form.first_name.trim() || !form.last_name.trim() || !form.phone.trim()) ? 0.5 : 1,
-                cursor: (!form.first_name.trim() || !form.last_name.trim() || !form.phone.trim()) ? 'not-allowed' : 'pointer',
+                opacity: continueDisabled ? 0.5 : 1,
+                cursor: continueDisabled ? 'not-allowed' : 'pointer',
               }}
             >
               Continuar →
@@ -143,6 +157,7 @@ export function OnboardingClient({ privyToken }: Props) {
             {/* Summary */}
             <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <SummaryRow label="Nombre" value={`${form.first_name} ${form.last_name}`} />
+              {form.contact_email && <SummaryRow label="Email" value={form.contact_email} />}
               <SummaryRow label="Teléfono" value={`${form.phone_country_code} ${form.phone}`} />
             </div>
 

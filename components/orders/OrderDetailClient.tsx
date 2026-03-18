@@ -26,6 +26,16 @@ interface PaymentProfile {
   details: Record<string, string>
 }
 
+interface EntityInfo {
+  internal_name?: string | null
+  legal_name?: string | null
+  office_country?: string | null
+  contact_email?: string | null
+  company_phone?: string | null
+  contact_name?: string | null
+  contact_phone?: string | null
+}
+
 interface Order {
   id: string
   type: string
@@ -43,10 +53,16 @@ interface Order {
   due_date: string | null
   status_history: StatusHistoryEntry[] | null
   entity_name?: string | null
+  entity?: EntityInfo | null
   processing_fee?: number | null
   fiat_currency?: string | null
   fiat_amount?: number | null
   fiat_rate?: number | null
+  convexo_account_id?: string | null
+  admin_fee?: number | null
+  admin_rate?: number | null
+  admin_fiat_amount?: number | null
+  admin_convexo_account_id?: string | null
 }
 
 interface OrderDetailClientProps {
@@ -57,7 +73,7 @@ interface OrderDetailClientProps {
   paymentProfile?: PaymentProfile | null
 }
 
-const CANCELLABLE = ['DRAFT', 'OPENED']
+const CANCELLABLE = ['DRAFT', 'OPENED', 'ACCEPTED']
 
 const CHAIN_COLORS: Record<string, string> = {
   Ethereum: '#627eea',
@@ -67,16 +83,17 @@ const CHAIN_COLORS: Record<string, string> = {
 
 // Steps visible to user
 const STEPS = [
-  { status: 'DRAFT',   label: 'Draft',    desc: 'Order is being prepared' },
-  { status: 'OPENED',  label: 'Opened',   desc: 'Ready for payment' },
-  { status: 'ORDERED', label: 'Ordered',  desc: 'Payment submitted' },
-  { status: 'PAYED',   label: 'Payed',    desc: 'Payment confirmed' },
+  { status: 'DRAFT',    label: 'Draft',     desc: 'Order is being prepared' },
+  { status: 'OPENED',   label: 'Submitted', desc: 'Awaiting admin review' },
+  { status: 'ACCEPTED', label: 'Accepted',  desc: 'Ready for payment' },
+  { status: 'ORDERED',  label: 'Ordered',   desc: 'Payment submitted' },
+  { status: 'PAYED',    label: 'Paid',      desc: 'Payment confirmed' },
 ]
 
 function getStepIndex(status: string) {
   const map: Record<string, number> = {
-    DRAFT: 0, OPENED: 1, ORDERED: 2,
-    EN_REVISION: 2, PROCESANDO: 2, PAYED: 3,
+    DRAFT: 0, OPENED: 1, ACCEPTED: 2, ORDERED: 3,
+    EN_REVISION: 3, PROCESANDO: 3, PROCESSING: 3, PAYED: 4,
   }
   return map[status] ?? 0
 }
@@ -90,12 +107,20 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
   // Available method types from filtered accounts
   const availableMethods = Array.from(new Set(paymentAccounts.map((a) => a.method)))
 
+  // Resolve the effective Convexo account: admin override takes precedence over user selection
+  const effectiveAccountId = order.admin_convexo_account_id ?? order.convexo_account_id ?? null
+  const effectiveAccount = effectiveAccountId
+    ? (convexoAccounts.find((a) => a.id === effectiveAccountId) ?? null)
+    : null
+
   const [status, setStatus] = useState(order.status)
   const [txnHash, setTxnHash] = useState(order.txn_hash ?? '')
   const [userProofUrl, setUserProofUrl] = useState(order.user_proof_url ?? '')
-  const [selectedMethod, setSelectedMethod] = useState<string>(availableMethods[0] ?? '')
+  const [selectedMethod, setSelectedMethod] = useState<string>(
+    effectiveAccount?.method ?? availableMethods[0] ?? ''
+  )
   const [selectedAccount, setSelectedAccount] = useState<string>(
-    paymentAccounts.find((a) => a.method === availableMethods[0])?.id ?? ''
+    effectiveAccountId ?? paymentAccounts.find((a) => a.method === availableMethods[0])?.id ?? ''
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -137,12 +162,17 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
     }
   }
 
-  // Use DB columns if present, fall back to legacy parsed values
-  const displayFee = order.processing_fee ?? legacyFee
+  // Use admin overrides first, then DB columns, then legacy parsed values
+  const displayFee = order.admin_fee ?? order.processing_fee ?? legacyFee
   const displayFiatCurrency = order.fiat_currency ?? legacyFiatCurrency
-  const displayFiatAmount = order.fiat_amount ?? legacyFiatAmount
-  const displayFiatRate = order.fiat_rate ?? legacyFiatRate
+  const displayFiatAmount = order.admin_fiat_amount ?? order.fiat_amount ?? legacyFiatAmount
+  const displayFiatRate = order.admin_rate ?? order.fiat_rate ?? legacyFiatRate
   const displayReference = cleanReference ?? legacyRef
+
+  // Flags for when admin has overridden values
+  const adminOverrideFee = order.admin_fee != null
+  const adminOverrideRate = order.admin_rate != null
+  const adminOverrideAmount = order.admin_fiat_amount != null
 
   async function handleSubmit() {
     setLoading(true); setError(null)
@@ -298,10 +328,9 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
         </div>
       )}
 
-      {/* Main info */}
+      {/* ── Header card ── */}
       <div style={cardStyle}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
@@ -318,170 +347,13 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
           </div>
           <StatusBadge status={status} />
         </div>
-
-        {/* Order meta: supplier/client + reference */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px 24px', marginBottom: 20 }}>
-          <Field label={order.type === 'PAY' ? 'Supplier' : 'Client'} value={counterpartyName} />
-          {displayReference && <Field label="Reference / PO" value={displayReference} />}
-        </div>
-
-        {/* Payment breakdown — PAY orders only */}
-        {order.type === 'PAY' && (
-          <div style={{ background: 'rgba(186,214,235,0.04)', border: '1px solid rgba(186,214,235,0.1)', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
-            <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(186,214,235,0.08)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)' }}>
-              Payment breakdown
-            </div>
-
-            {/* Token + amount row */}
-            <div style={breakdownRowStyle}>
-              <span style={breakdownLabelStyle}>Payment token</span>
-              <span style={{ ...breakdownValueStyle, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ background: '#334EAC', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99 }}>
-                  {order.currency}
-                </span>
-              </span>
-            </div>
-
-            <div style={breakdownRowStyle}>
-              <span style={breakdownLabelStyle}>Amount to supplier</span>
-              <span style={{ ...breakdownValueStyle, fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.95)' }}>
-                {Number(order.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {order.currency}
-              </span>
-            </div>
-
-            {displayFee != null && displayFee > 0 && (
-              <div style={breakdownRowStyle}>
-                <span style={breakdownLabelStyle}>Processing fee (1%)</span>
-                <span style={breakdownValueStyle}>
-                  {Number(displayFee).toLocaleString('en-US', { minimumFractionDigits: 2 })} {order.currency}
-                </span>
-              </div>
-            )}
-
-            {displayFee != null && displayFee > 0 && (
-              <div style={{ ...breakdownRowStyle, borderTop: '1px solid rgba(186,214,235,0.1)', background: 'rgba(186,214,235,0.04)' }}>
-                <span style={{ ...breakdownLabelStyle, fontWeight: 700, color: 'rgba(186,214,235,0.7)' }}>Total to deposit</span>
-                <span style={{ ...breakdownValueStyle, fontSize: 15, fontWeight: 800, color: '#BAD6EB' }}>
-                  {(Number(order.amount) + Number(displayFee)).toLocaleString('en-US', { minimumFractionDigits: 2 })} {order.currency}
-                </span>
-              </div>
-            )}
-
-            {/* Fiat equivalent section */}
-            {displayFiatCurrency && (
-              <>
-                <div style={{ padding: '8px 16px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.3)', borderTop: '1px solid rgba(186,214,235,0.08)', marginTop: 4 }}>
-                  Fiat equivalent
-                </div>
-
-                <div style={breakdownRowStyle}>
-                  <span style={breakdownLabelStyle}>Payment currency</span>
-                  <span style={{ ...breakdownValueStyle, fontWeight: 700 }}>{displayFiatCurrency}</span>
-                </div>
-
-                {displayFiatRate != null && (
-                  <div style={breakdownRowStyle}>
-                    <span style={breakdownLabelStyle}>Exchange rate</span>
-                    <span style={breakdownValueStyle}>
-                      1 USD = {Number(displayFiatRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} {displayFiatCurrency}
-                    </span>
-                  </div>
-                )}
-
-                {displayFiatAmount != null && (
-                  <div style={{ ...breakdownRowStyle, background: 'rgba(16,185,129,0.05)' }}>
-                    <span style={{ ...breakdownLabelStyle, color: 'rgba(16,185,129,0.8)' }}>Supplier receives</span>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#10b981' }}>
-                      {Number(displayFiatAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {displayFiatCurrency}
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Supplier payment method — how Convexo will pay them */}
-        {paymentProfile && (
-          <div style={{ background: 'rgba(186,214,235,0.04)', border: '1px solid rgba(186,214,235,0.1)', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
-            <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(186,214,235,0.08)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)' }}>
-              Supplier payment method
-            </div>
-            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ background: 'rgba(51,78,172,0.2)', color: '#BAD6EB', padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
-                  {paymentProfile.method}
-                </span>
-                {paymentProfile.label && (
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{paymentProfile.label}</span>
-                )}
-              </div>
-              {paymentProfile.method === 'BANK' && (
-                <>
-                  {paymentProfile.details.bank_name && <ProfileRow label="Bank" value={paymentProfile.details.bank_name} />}
-                  {paymentProfile.details.account_name && <ProfileRow label="Account holder" value={paymentProfile.details.account_name} />}
-                  {paymentProfile.details.account_number && <ProfileRow label="Account / IBAN" value={paymentProfile.details.account_number} />}
-                  {paymentProfile.details.routing_number && <ProfileRow label="SWIFT / Routing" value={paymentProfile.details.routing_number} />}
-                  {paymentProfile.details.currency && <ProfileRow label="Currency" value={paymentProfile.details.currency} />}
-                  {paymentProfile.details.country && <ProfileRow label="Country" value={paymentProfile.details.country} />}
-                </>
-              )}
-              {paymentProfile.method === 'CRYPTO' && (
-                <>
-                  {paymentProfile.details.network && <ProfileRow label="Network" value={paymentProfile.details.network} />}
-                  {paymentProfile.details.token && <ProfileRow label="Token" value={paymentProfile.details.token} />}
-                  {paymentProfile.details.address && <ProfileRow label="Address" value={paymentProfile.details.address} mono />}
-                </>
-              )}
-              {paymentProfile.method === 'WECHAT' && paymentProfile.details.wechat_id && (
-                <ProfileRow label="WeChat ID" value={paymentProfile.details.wechat_id} />
-              )}
-              {paymentProfile.method === 'PAYPAL' && paymentProfile.details.email && (
-                <ProfileRow label="PayPal email" value={paymentProfile.details.email} />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* COLLECT order amount */}
-        {order.type === 'COLLECT' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px 24px', marginBottom: 20 }}>
-            <Field label="Amount" value={`${Number(order.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${order.currency}`} />
-          </div>
-        )}
-
         {order.rejection_reason && (
-          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
             <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#f87171', marginBottom: 4 }}>Rejection reason</p>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{order.rejection_reason}</p>
           </div>
         )}
-
-        {/* Documents row */}
-        {(order.invoice_url || order.proof_url || order.txn_hash) && (
-          <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            {order.invoice_url && (
-              <a href={order.invoice_url} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 13, color: '#BAD6EB', textDecoration: 'none', fontWeight: 500 }}>
-                📄 View Invoice →
-              </a>
-            )}
-            {order.txn_hash && (
-              <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.6)', fontFamily: 'monospace' }}>
-                TxID: {order.txn_hash}
-              </span>
-            )}
-            {order.proof_url && (
-              <a href={order.proof_url} target="_blank" rel="noopener noreferrer" download
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, padding: '6px 14px', fontSize: 13, color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>
-                ↓ Download Proof of Payment
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* Actions + copy — always visible */}
-        <div style={{ marginTop: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           {status === 'DRAFT' && (
             <button onClick={handleSubmit} disabled={loading}
               style={{ ...primaryBtn, opacity: loading ? 0.6 : 1, cursor: loading ? 'wait' : 'pointer' }}>
@@ -494,98 +366,182 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
             </button>
           )}
           <button onClick={handleCopy} style={ghostBtn}>
-            {copied ? '✓ Copied!' : '📋 Copy Order Details'}
+            {copied ? '✓ Copied!' : '📋 Copy details'}
           </button>
         </div>
       </div>
 
-      {/* ── Step 2: Payment ── */}
-      {status === 'OPENED' && (
-        <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 4 }}>
-            Step 2 — Send Your Payment
-          </h3>
-          <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)', marginBottom: 20 }}>
-            Choose a payment method, transfer the exact amount, then confirm your payment.
-          </p>
+      {/* ── Section 1: Proveedor ── */}
+      <div style={cardStyle}>
+        <SectionLabel>Proveedor</SectionLabel>
+        <p style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 10 }}>{counterpartyName}</p>
 
-          {paymentAccounts.length === 0 ? (
-            <p style={{ fontSize: 13, color: '#f59e0b' }}>No Convexo payment accounts configured yet. Contact support.</p>
-          ) : (
-            <>
-              {/* Method tabs */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                {availableMethods.map((method) => {
-                  const isActive = selectedMethod === method
-                  const methodLabel: Record<string, string> = { CRYPTO: '🔗 Crypto', BANK: '🏦 Bank Transfer', CASH: '💵 Cash' }
-                  return (
-                    <button
-                      key={method}
-                      onClick={() => selectMethod(method)}
-                      style={{
-                        padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                        border: isActive ? '2px solid #334EAC' : '2px solid rgba(186,214,235,0.15)',
-                        background: isActive ? 'rgba(51,78,172,0.2)' : 'rgba(255,255,255,0.03)',
-                        color: isActive ? '#BAD6EB' : 'rgba(186,214,235,0.5)',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {methodLabel[method] ?? method}
-                    </button>
-                  )
-                })}
+        {/* Entity details */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: paymentProfile ? 14 : 0 }}>
+          {order.entity?.legal_name && <ProfileRow label="Legal name" value={order.entity.legal_name} />}
+          {order.entity?.office_country && <ProfileRow label="Country" value={order.entity.office_country} />}
+          {order.entity?.contact_email && <ProfileRow label="Email" value={order.entity.contact_email} />}
+          {order.entity?.company_phone && <ProfileRow label="Phone" value={order.entity.company_phone} />}
+          {order.entity?.contact_name && (
+            <ProfileRow
+              label="Contact"
+              value={order.entity.contact_name + (order.entity.contact_phone ? ` · ${order.entity.contact_phone}` : '')}
+            />
+          )}
+        </div>
+
+        {/* Payment method */}
+        {paymentProfile && (
+          <>
+            <div style={{ borderTop: '1px solid rgba(186,214,235,0.08)', paddingTop: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(186,214,235,0.4)' }}>Payment method</span>
+                <span style={{ background: 'rgba(51,78,172,0.2)', color: '#BAD6EB', padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700 }}>
+                  {paymentProfile.method}
+                </span>
+                {paymentProfile.label && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{paymentProfile.label}</span>}
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {paymentProfile.method === 'BANK' && (
+                  <>
+                    {paymentProfile.details.bank_name && <ProfileRow label="Bank" value={paymentProfile.details.bank_name} />}
+                    {paymentProfile.details.account_name && <ProfileRow label="Account holder" value={paymentProfile.details.account_name} />}
+                    {paymentProfile.details.account_number && <ProfileRow label="Account / IBAN" value={paymentProfile.details.account_number} mono />}
+                    {paymentProfile.details.routing_number && <ProfileRow label="SWIFT / Routing" value={paymentProfile.details.routing_number} mono />}
+                    {paymentProfile.details.branch_code && <ProfileRow label="Branch code" value={paymentProfile.details.branch_code} mono />}
+                    {paymentProfile.details.bank_code && <ProfileRow label="Bank code" value={paymentProfile.details.bank_code} mono />}
+                    {paymentProfile.details.currency && <ProfileRow label="Currency" value={paymentProfile.details.currency} />}
+                    {paymentProfile.details.country && <ProfileRow label="Country" value={paymentProfile.details.country} />}
+                  </>
+                )}
+                {paymentProfile.method === 'CRYPTO' && (
+                  <>
+                    {paymentProfile.details.network && <ProfileRow label="Network" value={paymentProfile.details.network} />}
+                    {paymentProfile.details.token && <ProfileRow label="Token" value={paymentProfile.details.token} />}
+                    {paymentProfile.details.address && <ProfileRow label="Address" value={paymentProfile.details.address} mono />}
+                  </>
+                )}
+                {paymentProfile.method === 'WECHAT' && paymentProfile.details.wechat_id && <ProfileRow label="WeChat ID" value={paymentProfile.details.wechat_id} />}
+                {paymentProfile.method === 'PAYPAL' && paymentProfile.details.email && <ProfileRow label="PayPal email" value={paymentProfile.details.email} />}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
-              {/* Accounts for selected method */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-                {paymentAccounts.filter(a => a.method === selectedMethod).map((acct) => {
-                  const isSel = selectedAccount === acct.id
+      {/* ── Section 2: Detalles de la orden ── */}
+      <div style={cardStyle}>
+        <SectionLabel>Detalles de la orden</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, background: 'rgba(186,214,235,0.03)', borderRadius: 10, border: '1px solid rgba(186,214,235,0.08)', overflow: 'hidden' }}>
+          <BRow label="Token">
+            <span style={{ background: '#334EAC', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99 }}>{order.currency}</span>
+          </BRow>
+          <BRow label="Amount to supplier">
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.95)' }}>
+              {Number(order.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {order.currency}
+            </span>
+          </BRow>
+          {displayFee != null && displayFee > 0 && (
+            <BRow label={`Processing fee${adminOverrideFee ? ' ✦' : ''}`}>
+              <span style={{ color: adminOverrideFee ? '#f59e0b' : undefined }}>
+                {Number(displayFee).toLocaleString('en-US', { minimumFractionDigits: 2 })} {order.currency}
+              </span>
+            </BRow>
+          )}
+          {displayFee != null && displayFee > 0 && (
+            <BRow label="Total to deposit" highlight>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#BAD6EB' }}>
+                {(Number(order.amount) + Number(displayFee)).toLocaleString('en-US', { minimumFractionDigits: 2 })} {order.currency}
+              </span>
+            </BRow>
+          )}
+          {displayFiatCurrency && (
+            <>
+              <div style={{ padding: '6px 16px 2px', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.3)', borderTop: '1px solid rgba(186,214,235,0.08)' }}>
+                Fiat equivalent
+              </div>
+              {displayFiatRate != null && (
+                <BRow label={`Exchange rate${adminOverrideRate ? ' ✦' : ''}`}>
+                  <span style={{ color: adminOverrideRate ? '#f59e0b' : undefined }}>
+                    1 USD = {Number(displayFiatRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} {displayFiatCurrency}
+                  </span>
+                </BRow>
+              )}
+              {displayFiatAmount != null && (
+                <BRow label={`Supplier receives${adminOverrideAmount ? ' ✦' : ''}`} green>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: adminOverrideAmount ? '#f59e0b' : '#10b981' }}>
+                    {Number(displayFiatAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {displayFiatCurrency}
+                  </span>
+                </BRow>
+              )}
+            </>
+          )}
+        </div>
+        {order.invoice_url && (
+          <div style={{ marginTop: 14 }}>
+            <a href={order.invoice_url} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 13, color: '#BAD6EB', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              📄 View Invoice →
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* ── Section 3: Pago a Convexo ── */}
+      <div style={cardStyle}>
+        <SectionLabel>Pago a Convexo</SectionLabel>
+
+        {/* DRAFT / OPENED: pending states */}
+        {status === 'DRAFT' && (
+          <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.4)' }}>Submit the order first to get payment instructions.</p>
+        )}
+        {status === 'OPENED' && (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(91,33,182,0.06)', borderRadius: 8, padding: '12px 14px' }}>
+            <span style={{ fontSize: 18 }}>⏳</span>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Awaiting admin review</p>
+              <p style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)', marginTop: 3 }}>
+                You&apos;ll be notified once the order is accepted with payment instructions.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ACCEPTED: interactive payment panel */}
+        {status === 'ACCEPTED' && (
+          <>
+            <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)', marginBottom: 16 }}>
+              Transfer the exact amount to the Convexo account below, then confirm your payment.
+            </p>
+            {!effectiveAccount ? (
+              <p style={{ fontSize: 13, color: '#f59e0b' }}>No payment account assigned yet. Contact support.</p>
+            ) : (
+              <>
+                {(() => {
+                  const acct = effectiveAccount
                   const chainColor = acct.method === 'CRYPTO' ? (CHAIN_COLORS[acct.details.network] ?? '#888') : '#334EAC'
                   return (
-                    <div
-                      key={acct.id}
-                      onClick={() => setSelectedAccount(acct.id)}
-                      style={{
-                        border: `2px solid ${isSel ? chainColor : 'rgba(186,214,235,0.15)'}`,
-                        borderRadius: 12, padding: 16, cursor: 'pointer',
-                        background: isSel ? chainColor + '10' : 'rgba(255,255,255,0.03)',
-                        transition: 'all 0.15s',
-                      }}
-                    >
+                    <div style={{ border: `2px solid ${chainColor}`, borderRadius: 12, padding: 16, marginBottom: 16, background: chainColor + '10' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                         <div style={{ flex: 1 }}>
-                          {/* Label row */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
-                              {acct.label ?? acct.method}
-                            </span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{acct.label ?? acct.method}</span>
                             {acct.method === 'CRYPTO' && acct.details.network && (
                               <span style={{ background: (CHAIN_COLORS[acct.details.network] ?? '#888') + '22', color: CHAIN_COLORS[acct.details.network] ?? '#888', padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
                                 {acct.details.network}
                               </span>
                             )}
-                            {acct.method === 'CRYPTO' && acct.details.token && (
-                              <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)' }}>{acct.details.token}</span>
-                            )}
+                            {acct.method === 'CRYPTO' && acct.details.token && <span style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)' }}>{acct.details.token}</span>}
                           </div>
-
-                          {/* CRYPTO details */}
                           {acct.method === 'CRYPTO' && acct.details.address && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <code style={{ fontSize: 12, color: 'rgba(186,214,235,0.8)', wordBreak: 'break-all', flex: 1 }}>
-                                {acct.details.address}
-                              </code>
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(acct.details.address) }}
-                                style={{ flexShrink: 0, background: 'rgba(186,214,235,0.1)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 6, padding: '3px 8px', fontSize: 11, color: 'rgba(186,214,235,0.7)', cursor: 'pointer' }}
-                              >
+                              <code style={{ fontSize: 12, color: 'rgba(186,214,235,0.8)', wordBreak: 'break-all', flex: 1 }}>{acct.details.address}</code>
+                              <button type="button" onClick={() => navigator.clipboard.writeText(acct.details.address)}
+                                style={{ flexShrink: 0, background: 'rgba(186,214,235,0.1)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 6, padding: '3px 8px', fontSize: 11, color: 'rgba(186,214,235,0.7)', cursor: 'pointer' }}>
                                 Copy
                               </button>
                             </div>
                           )}
-
-                          {/* BANK details */}
                           {acct.method === 'BANK' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {acct.details.bank_name && <AccountDetail label="Bank" value={acct.details.bank_name} />}
@@ -593,22 +549,16 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
                               {acct.details.account_number && <AccountDetail label="Account / IBAN" value={acct.details.account_number} copy />}
                               {acct.details.routing_number && <AccountDetail label="SWIFT / Routing" value={acct.details.routing_number} copy />}
                               {acct.details.currency && <AccountDetail label="Currency" value={acct.details.currency} />}
-                              {acct.details.country && <AccountDetail label="Country" value={acct.details.country} />}
                             </div>
                           )}
-
-                          {/* CASH details */}
                           {acct.method === 'CASH' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {acct.details.place_name && <AccountDetail label="Location" value={acct.details.place_name} />}
                               {acct.details.address && <AccountDetail label="Address" value={acct.details.address} />}
-                              {acct.details.city && <AccountDetail label="City" value={acct.details.city} />}
                               {acct.details.instructions && <AccountDetail label="Instructions" value={acct.details.instructions} />}
                             </div>
                           )}
                         </div>
-
-                        {/* QR code — CRYPTO only */}
                         {acct.method === 'CRYPTO' && acct.details.address && (
                           <div style={{ background: 'white', borderRadius: 8, padding: 8, flexShrink: 0 }}>
                             <QRCode value={acct.details.address} size={100} />
@@ -617,122 +567,119 @@ export function OrderDetailClient({ order, privyToken, backHref, convexoAccounts
                       </div>
                     </div>
                   )
-                })}
+                })()}
+                {effectiveAccount.method === 'CRYPTO' && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={labelStyle}>Transaction Hash (TxID) <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input style={inputStyle} placeholder="Paste the transaction hash from your wallet..."
+                      value={txnHash} onChange={(e) => setTxnHash(e.target.value)} />
+                  </div>
+                )}
+                {effectiveAccount.method === 'BANK' && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={labelStyle}>Proof of Payment <span style={{ color: '#ef4444' }}>*</span></label>
+                    <FileUpload label="Upload bank receipt or transfer confirmation (PDF, JPG, PNG)" accept=".pdf,.jpg,.jpeg,.png"
+                      currentUrl={userProofUrl || undefined}
+                      onUpload={async (file) => {
+                        const { uploadUserProof } = await import('@/lib/actions/orders')
+                        const url = await uploadUserProof(privyToken, file)
+                        setUserProofUrl(url)
+                        return url
+                      }} />
+                  </div>
+                )}
+                {(() => {
+                  const canConfirm = effectiveAccount.method === 'CRYPTO' ? !!txnHash.trim() :
+                    effectiveAccount.method === 'BANK' ? !!userProofUrl : true
+                  return (
+                    <button onClick={handleConfirmPayment} disabled={loading || !canConfirm}
+                      style={{ ...primaryBtn, opacity: (!canConfirm || loading) ? 0.5 : 1, cursor: (!canConfirm || loading) ? 'not-allowed' : 'pointer' }}>
+                      {loading ? 'Confirming...' : 'Confirm Payment →'}
+                    </button>
+                  )
+                })()}
+              </>
+            )}
+          </>
+        )}
+
+        {/* ORDERED / PROCESSING / PAYED: view submitted proof */}
+        {['ORDERED', 'PROCESSING', 'PAYED'].includes(status) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span style={{ fontSize: 16 }}>✅</span>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>Payment confirmed by user</p>
+            </div>
+            {order.txn_hash && (
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(186,214,235,0.4)', marginBottom: 4 }}>Transaction ID</p>
+                <code style={{ fontSize: 12, color: 'rgba(186,214,235,0.8)', wordBreak: 'break-all' }}>{order.txn_hash}</code>
               </div>
+            )}
+            {order.user_proof_url && (
+              <a href={order.user_proof_url} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 13, color: '#BAD6EB', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                📎 View payment proof →
+              </a>
+            )}
+          </div>
+        )}
+      </div>
 
-              {/* CRYPTO — mandatory TxID */}
-              {selectedMethod === 'CRYPTO' && (
-                <div style={{ marginBottom: 16 }}>
-                  <label style={labelStyle}>
-                    Transaction Hash (TxID) <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    style={inputStyle}
-                    placeholder="Paste the transaction hash from your wallet..."
-                    value={txnHash}
-                    onChange={(e) => setTxnHash(e.target.value)}
-                  />
-                  <p style={{ fontSize: 11, color: 'rgba(186,214,235,0.35)', marginTop: 4 }}>
-                    You can find the TxID in your wallet app or on the blockchain explorer after sending.
-                  </p>
-                </div>
-              )}
+      {/* ── Section 4: Pago al Proveedor ── */}
+      <div style={cardStyle}>
+        <SectionLabel>Pago al Proveedor</SectionLabel>
 
-              {/* BANK — mandatory proof of payment upload */}
-              {selectedMethod === 'BANK' && (
-                <div style={{ marginBottom: 16 }}>
-                  <label style={labelStyle}>
-                    Proof of Payment <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <FileUpload
-                    label="Upload bank receipt or transfer confirmation (PDF, JPG, PNG)"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    currentUrl={userProofUrl || undefined}
-                    onUpload={async (file) => {
-                      const { uploadUserProof } = await import('@/lib/actions/orders')
-                      const url = await uploadUserProof(privyToken, file)
-                      setUserProofUrl(url)
-                      return url
-                    }}
-                  />
-                </div>
-              )}
+        {/* DRAFT / OPENED / ACCEPTED: not yet processed */}
+        {['DRAFT', 'OPENED', 'ACCEPTED'].includes(status) && (
+          <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.4)' }}>
+            Once Convexo processes your payment, the proof of transfer will appear here.
+          </p>
+        )}
 
-              {/* CASH — no extra field required */}
-
-              {/* Confirm button */}
-              {(() => {
-                const canConfirm = !!selectedAccount && (
-                  selectedMethod === 'CRYPTO' ? !!txnHash.trim() :
-                  selectedMethod === 'BANK'   ? !!userProofUrl :
-                  true
-                )
-                return (
-                  <button
-                    onClick={handleConfirmPayment}
-                    disabled={loading || !canConfirm}
-                    style={{ ...primaryBtn, opacity: (!canConfirm || loading) ? 0.5 : 1, cursor: (!canConfirm || loading) ? 'not-allowed' : 'pointer' }}
-                  >
-                    {loading ? 'Confirming...' : 'Confirm Payment →'}
-                  </button>
-                )
-              })()}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ORDERED confirmation */}
-      {status === 'ORDERED' && (
-        <div style={{ ...cardStyle, borderColor: 'rgba(109,40,217,0.3)', background: 'rgba(109,40,217,0.05)' }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 22 }}>⏳</span>
+        {/* ORDERED / PROCESSING: in progress */}
+        {['ORDERED', 'PROCESSING'].includes(status) && (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(91,33,182,0.06)', borderRadius: 8, padding: '12px 14px' }}>
+            <span style={{ fontSize: 18 }}>⏳</span>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Payment received — Convexo is processing your order</p>
-              <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)', marginTop: 4 }}>
-                We're verifying your transaction and will process the payment to {counterpartyName} shortly.
-              </p>
-              {order.txn_hash && (
-                <p style={{ fontSize: 12, fontFamily: 'monospace', color: 'rgba(186,214,235,0.5)', marginTop: 8 }}>
-                  TxID: {order.txn_hash}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PAYED */}
-      {status === 'PAYED' && order.proof_url && (
-        <div style={{ ...cardStyle, borderColor: 'rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.05)' }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <span style={{ fontSize: 22 }}>✅</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#10b981' }}>Payment completed</p>
-              <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)', marginTop: 2 }}>
-                Convexo has successfully processed your payment to {counterpartyName}.
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Processing payment to {counterpartyName}</p>
+              <p style={{ fontSize: 12, color: 'rgba(186,214,235,0.5)', marginTop: 3 }}>
+                Convexo is verifying your transaction and processing the transfer. You&apos;ll be notified when complete.
               </p>
             </div>
-            <a
-              href={order.proof_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
-              style={{ ...primaryBtn, textDecoration: 'none', background: '#10b981', flexShrink: 0 }}
-            >
-              ↓ Download Proof
-            </a>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* REJECTED / CANCELLED */}
-      {status === 'RECHAZADO' && (
-        <div style={{ ...cardStyle, borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)' }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#ef4444' }}>Order rejected</p>
-          {order.rejection_reason && <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.5)', marginTop: 4 }}>Reason: {order.rejection_reason}</p>}
-        </div>
-      )}
+        {/* PAYED: show admin proof */}
+        {status === 'PAYED' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span style={{ fontSize: 16 }}>✅</span>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>
+                Payment to {counterpartyName} completed
+              </p>
+            </div>
+            {order.proof_url ? (
+              <a
+                href={order.proof_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                style={{ fontSize: 13, color: '#BAD6EB', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                ↓ Download proof of payment
+              </a>
+            ) : (
+              <p style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)' }}>Proof document not yet uploaded.</p>
+            )}
+          </div>
+        )}
+
+        {/* RECHAZADO / CANCELADO */}
+        {['RECHAZADO', 'CANCELADO'].includes(status) && (
+          <p style={{ fontSize: 13, color: 'rgba(186,214,235,0.4)' }}>Order did not reach payment stage.</p>
+        )}
+      </div>
 
       {/* Status history */}
       {order.status_history && order.status_history.length > 0 && (
@@ -779,6 +726,27 @@ function AccountDetail({ label, value, copy }: { label: string; value: string; c
           </button>
         )}
       </div>
+    </div>
+  )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(186,214,235,0.4)', marginBottom: 14 }}>
+      {children}
+    </p>
+  )
+}
+
+function BRow({ label, children, highlight, green }: { label: string; children: React.ReactNode; highlight?: boolean; green?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '10px 16px', borderBottom: '1px solid rgba(186,214,235,0.05)',
+      background: highlight ? 'rgba(51,78,172,0.08)' : green ? 'rgba(16,185,129,0.05)' : undefined,
+    }}>
+      <span style={{ fontSize: 13, color: 'rgba(186,214,235,0.55)' }}>{label}</span>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{children}</div>
     </div>
   )
 }

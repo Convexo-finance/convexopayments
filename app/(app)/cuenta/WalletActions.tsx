@@ -104,7 +104,7 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/chains/${chain}.png`} alt={chain} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} />
+              <img src={`/chains/${chain}.png`} alt={chain} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'contain' }} />
               {chain === 'ethereum' ? 'Ethereum' : 'Solana'}
             </button>
           ))}
@@ -200,7 +200,7 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/chains/${chain}.png`} alt={chain} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} />
+                    <img src={`/chains/${chain}.png`} alt={chain} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'contain' }} />
                     {chain === 'ethereum' ? 'Ethereum' : 'Solana'}
                   </button>
                 ))}

@@ -3,12 +3,28 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireAdmin } from './auth'
 import { createNotification } from './notifications'
 import { getPrivyClient } from '@/lib/privy/server'
+import {
+  buildOrderAcceptedEmail,
+  buildOrderPaidEmail,
+  buildOrderRejectedEmail,
+} from '@/lib/emails/orderEmails'
+import {
+  buildOtcAcceptedEmail,
+  buildOtcCancelledEmail,
+  buildOtcInReviewEmail,
+  buildOtcReadyToPayEmail,
+  buildOtcReceiptEmail,
+  buildOtcRejectedEmail,
+} from '@/lib/emails/otcEmails'
 
 const ADMIN_VALID_TRANSITIONS: Record<string, string[]> = {
-  OPENED:     ['EN_REVISION'],
-  ORDERED:    ['EN_REVISION'],
+  OPENED:      ['ACCEPTED', 'RECHAZADO'],
+  ACCEPTED:    ['RECHAZADO'],
+  ORDERED:     ['PROCESSING', 'RECHAZADO'],
+  PROCESSING:  ['PAYED', 'RECHAZADO'],
+  // Legacy — keep for old orders
   EN_REVISION: ['PROCESANDO', 'RECHAZADO'],
-  PROCESANDO: ['PAYED', 'RECHAZADO'],
+  PROCESANDO:  ['PAYED', 'RECHAZADO'],
 }
 
 export async function uploadAdminProof(privyToken: string, file: File) {
@@ -65,6 +81,40 @@ export async function adminUpdateOrderStatus(
     .single()
   if (error) throw error
 
+  // Build rich email for key statuses
+  let emailOverride: { emailSubject: string; emailHtml: string } | undefined
+  if (newStatus === 'PAYED' || newStatus === 'RECHAZADO') {
+    try {
+      const entityTable = updated.type === 'PAY' ? 'suppliers' : 'clients'
+      const { data: entity } = await supabase
+        .from(entityTable)
+        .select('internal_name')
+        .eq('id', updated.entity_id)
+        .single()
+      const emailParams = {
+        orderId: updated.id,
+        orderType: updated.type as 'PAY' | 'COLLECT',
+        amount: updated.amount ?? 0,
+        currency: updated.currency ?? '',
+        entityName: entity?.internal_name ?? null,
+        reference: updated.reference,
+      }
+      if (newStatus === 'PAYED') {
+        emailOverride = {
+          emailSubject: `Orden pagada ✓ — #${updated.id.slice(0, 8).toUpperCase()}`,
+          emailHtml: buildOrderPaidEmail({ ...emailParams, proofUrl: updated.proof_url ?? opts.proofUrl }),
+        }
+      } else if (newStatus === 'RECHAZADO') {
+        emailOverride = {
+          emailSubject: `Orden rechazada — #${updated.id.slice(0, 8).toUpperCase()}`,
+          emailHtml: buildOrderRejectedEmail({ ...emailParams, rejectionReason: opts.rejectionReason }),
+        }
+      }
+    } catch (err) {
+      console.error('[adminUpdateOrderStatus] Email prep failed:', err)
+    }
+  }
+
   await createNotification(
     order.user_id!,
     'ORDER_STATUS',
@@ -75,7 +125,99 @@ export async function adminUpdateOrderStatus(
         ? 'Your order has been paid. You can now download the proof of payment.'
         : `Your order status is now ${newStatus}.`,
     orderId,
-    'ORDER'
+    'ORDER',
+    emailOverride
+  )
+  return updated
+}
+
+export async function adminAcceptOrder(
+  privyToken: string,
+  orderId: string,
+  opts: {
+    adminFee?: number
+    adminRate?: number
+    adminFiatAmount?: number
+    adminConvexoAccountId?: string
+    notes?: string
+  } = {}
+) {
+  const admin = await requireAdmin(privyToken)
+  const supabase = await createClient(privyToken)
+  const { data: order } = await supabase
+    .from('payment_orders')
+    .select('status, user_id, amount, currency')
+    .eq('id', orderId)
+    .single()
+  if (!order) throw new Error('NOT_FOUND')
+  if (order.status !== 'OPENED') throw new Error('INVALID_TRANSITION')
+
+  const history = ([] as unknown[])
+  const { data: existing } = await supabase
+    .from('payment_orders')
+    .select('status_history')
+    .eq('id', orderId)
+    .single()
+  const hist = ((existing?.status_history as unknown[]) ?? [])
+  hist.push({
+    status: 'ACCEPTED',
+    changed_at: new Date().toISOString(),
+    changed_by: admin.id,
+  })
+  void history
+
+  const update: Record<string, unknown> = {
+    status: 'ACCEPTED',
+    status_history: hist,
+    updated_at: new Date().toISOString(),
+  }
+  if (opts.adminFee != null) update.admin_fee = opts.adminFee
+  if (opts.adminRate != null) update.admin_rate = opts.adminRate
+  if (opts.adminFiatAmount != null) update.admin_fiat_amount = opts.adminFiatAmount
+  if (opts.adminConvexoAccountId) update.admin_convexo_account_id = opts.adminConvexoAccountId
+  if (opts.notes) update.notes = opts.notes
+
+  const { data: updated, error } = await supabase
+    .from('payment_orders')
+    .update(update)
+    .eq('id', orderId)
+    .select()
+    .single()
+  if (error) throw error
+
+  // Fetch entity name for the accepted email
+  let acceptedEmailOverride: { emailSubject: string; emailHtml: string } | undefined
+  try {
+    const entityTable = updated.type === 'PAY' ? 'suppliers' : 'clients'
+    const { data: entity } = await supabase
+      .from(entityTable)
+      .select('internal_name')
+      .eq('id', updated.entity_id)
+      .single()
+    acceptedEmailOverride = {
+      emailSubject: `¡Orden aceptada! — #${updated.id.slice(0, 8).toUpperCase()}`,
+      emailHtml: buildOrderAcceptedEmail({
+        orderId: updated.id,
+        orderType: updated.type as 'PAY' | 'COLLECT',
+        amount: updated.amount ?? 0,
+        currency: updated.currency ?? '',
+        entityName: entity?.internal_name ?? null,
+        reference: updated.reference,
+        adminFee: opts.adminFee,
+      }),
+    }
+  } catch (err) {
+    console.error('[adminAcceptOrder] Email prep failed:', err)
+  }
+
+  await createNotification(
+    order.user_id!,
+    'ORDER_STATUS',
+    'Orden aceptada',
+    'Tu orden ha sido revisada y aceptada. Por favor completa tu pago para continuar.',
+    orderId,
+    'ORDER',
+    acceptedEmailOverride
   )
   return updated
 }
@@ -326,25 +468,17 @@ export async function adminUpdateWalletRequest(
         await resend.emails.send({
           from: 'pay@convexo.xyz',
           to: userEmail,
-          subject: `Orden ${typeLabel} liquidada — #${req.id.slice(0, 8).toUpperCase()}`,
-          html: `
-            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
-              <h2 style="color:#081F5C">Orden OTC Liquidada ✓</h2>
-              <p>Tu operación <strong>${typeLabel}</strong> ha sido completada.</p>
-              <table style="width:100%;border-collapse:collapse;margin:16px 0">
-                <tr><td style="padding:6px 0;color:#666">ID</td><td style="font-family:monospace">#${req.id.slice(0, 8).toUpperCase()}</td></tr>
-                <tr><td style="padding:6px 0;color:#666">Tipo</td><td>${typeLabel}</td></tr>
-                <tr><td style="padding:6px 0;color:#666">Monto</td><td>${Number(req.amount).toLocaleString()} ${req.currency}</td></tr>
-                ${copAmount ? `<tr><td style="padding:6px 0;color:#666">Equivalente COP</td><td><strong>$${copAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</strong></td></tr>` : ''}
-                ${adminRate ? `<tr><td style="padding:6px 0;color:#666">Tasa aplicada</td><td>${adminRate.toLocaleString('es-CO', { maximumFractionDigits: 0 })} COP/USD</td></tr>` : ''}
-                <tr><td style="padding:6px 0;color:#666">Spread</td><td>${(spread * 100).toFixed(2)}%</td></tr>
-                <tr><td style="padding:6px 0;color:#666">Fecha</td><td>${new Date().toLocaleDateString('es-CO')}</td></tr>
-              </table>
-              ${req.proof_url ? `<p><a href="${req.proof_url}" style="color:#334EAC">Ver comprobante de pago →</a></p>` : ''}
-              <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
-              <p style="color:#999;font-size:12px">Convexo · pay.convexo.xyz</p>
-            </div>
-          `,
+          subject: `Orden ${typeLabel} liquidada ✓ — #${req.id.slice(0, 8).toUpperCase()}`,
+          html: buildOtcReceiptEmail({
+            requestId: req.id,
+            type: req.type,
+            amount: Number(req.amount),
+            currency: req.currency ?? 'USDC',
+            copAmount: copAmount || undefined,
+            adminRate: adminRate || undefined,
+            spreadPct: spread,
+            proofUrl: req.proof_url ?? opts.proofUrl,
+          }),
         })
       }
     } catch (err) {
@@ -364,6 +498,54 @@ export async function adminUpdateWalletRequest(
 
   await supabase.from('wallet_requests').update(update).eq('id', requestId)
 
+  // Build rich email for each OTC status transition
+  let otcEmailOverride: { emailSubject: string; emailHtml: string } | undefined
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const meta = (req.metadata as any) ?? {}
+    const otcParams = {
+      requestId: req.id,
+      type: req.type,
+      amount: Number(req.amount),
+      currency: req.currency ?? 'USDC',
+      copAmount: Number(meta.cop_amount ?? 0) || undefined,
+      adminRate: Number(update.admin_rate ?? req.admin_rate ?? meta.usdcop_rate ?? 0) || undefined,
+      spreadPct: Number(update.spread_pct ?? req.spread_pct ?? 0.01),
+      proofUrl: req.proof_url ?? opts.proofUrl,
+      rejectionReason: opts.rejectionReason,
+    }
+    const shortRef = req.id.slice(0, 8).toUpperCase()
+    const opLabel = req.type === 'CASH_IN' ? 'COMPRAR' : 'VENDER'
+    if (newStatus === 'ACEPTADO') {
+      otcEmailOverride = {
+        emailSubject: `Orden OTC ${opLabel} aceptada — #${shortRef}`,
+        emailHtml: buildOtcAcceptedEmail(otcParams),
+      }
+    } else if (newStatus === 'POR_PAGAR') {
+      otcEmailOverride = {
+        emailSubject: `Acción requerida: completa tu pago — #${shortRef}`,
+        emailHtml: buildOtcReadyToPayEmail(otcParams),
+      }
+    } else if (newStatus === 'REVISION') {
+      otcEmailOverride = {
+        emailSubject: `Pago recibido, en revisión — #${shortRef}`,
+        emailHtml: buildOtcInReviewEmail(otcParams),
+      }
+    } else if (newStatus === 'CANCELADO') {
+      otcEmailOverride = {
+        emailSubject: `Orden OTC ${opLabel} cancelada — #${shortRef}`,
+        emailHtml: buildOtcCancelledEmail(otcParams),
+      }
+    } else if (newStatus === 'RECHAZADO') {
+      otcEmailOverride = {
+        emailSubject: `Orden OTC ${opLabel} rechazada — #${shortRef}`,
+        emailHtml: buildOtcRejectedEmail(otcParams),
+      }
+    }
+  } catch (err) {
+    console.error('[adminUpdateWalletRequest] OTC email prep failed:', err)
+  }
+
   const notif = OTC_NOTIFICATIONS[newStatus]
   await createNotification(
     req.user_id!,
@@ -371,7 +553,8 @@ export async function adminUpdateWalletRequest(
     notif?.title ?? `Estado: ${newStatus}`,
     notif?.body ?? `Tu solicitud ahora está en estado ${newStatus}.`,
     requestId,
-    'WALLET_REQUEST'
+    'WALLET_REQUEST',
+    otcEmailOverride
   )
 
 }
@@ -436,7 +619,7 @@ export async function adminGetOrderById(privyToken: string, orderId: string) {
   const supabase = await createClient(privyToken)
   const { data: order, error } = await supabase
     .from('payment_orders')
-    .select('*, users(email), payment_profiles!payment_profile_id(*), convexo_accounts!convexo_account_id(*)')
+    .select('*, users(email), payment_profiles!payment_profile_id(*), convexo_accounts!convexo_account_id(*), admin_convexo_account:convexo_accounts!admin_convexo_account_id(*)')
     .eq('id', orderId)
     .single()
   if (error || !order) throw new Error('NOT_FOUND')

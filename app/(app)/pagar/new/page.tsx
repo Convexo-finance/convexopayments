@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Topbar } from '@/components/layout/Topbar'
-import { OrderForm } from '@/components/orders/OrderForm'
+import { OrderWizard } from '@/components/orders/OrderWizard'
 import { getSessionUser } from '@/lib/actions/auth'
 
 export default async function NewPayOrderPage() {
@@ -16,7 +16,7 @@ export default async function NewPayOrderPage() {
     <div>
       <Topbar title="New Payment Order" breadcrumb="Pagar" />
       <div style={{ padding: 24 }}>
-        <OrderForm type="PAY" />
+        <OrderWizard type="PAY" />
       </div>
     </div>
   )

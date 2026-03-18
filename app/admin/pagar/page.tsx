@@ -5,13 +5,13 @@ import { Topbar } from '@/components/layout/Topbar'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { adminGetAllOrders } from '@/lib/actions/admin'
 
-const STATUSES = ['', 'OPENED', 'ORDERED', 'EN_REVISION', 'PROCESANDO', 'PAYED', 'RECHAZADO']
+const STATUSES = ['', 'OPENED', 'ACCEPTED', 'ORDERED', 'PROCESSING', 'PAYED', 'RECHAZADO']
 const LABELS: Record<string, string> = {
   '': 'Todos',
   OPENED: 'Abierto',
+  ACCEPTED: 'Aceptado',
   ORDERED: 'Ordenado',
-  EN_REVISION: 'En Revisión',
-  PROCESANDO: 'Procesando',
+  PROCESSING: 'Procesando',
   PAYED: 'Pagado',
   RECHAZADO: 'Rechazado',
 }
