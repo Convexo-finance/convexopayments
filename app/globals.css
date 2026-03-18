@@ -61,6 +61,13 @@ body {
   gap: 20px;
 }
 
+.landing-feature-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  align-items: center;
+}
+
 .landing-footer-grid {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -85,6 +92,11 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .landing-feature-row {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
   .landing-footer-grid {
     grid-template-columns: 1fr;
     gap: 32px;
@@ -103,6 +115,11 @@ body {
 @media (max-width: 600px) {
   .landing-products-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  /* On mobile, reverse every other feature row back to normal (visual always on top) */
+  .landing-feature-row.reverse {
+    direction: ltr;
   }
 }
 

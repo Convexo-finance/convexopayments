@@ -10,16 +10,34 @@ const COPY = {
     badge: 'B2B Financial Infrastructure',
     headline: 'International Payments\nBuilt for Business',
     sub: 'Convexo centralizes international payments, collections, and digital asset operations — giving your team full control with institutional-grade infrastructure.',
-    cta: 'Sign in to your account',
+    cta: 'Get started',
     loading: 'Setting up your account…',
     error: 'Something went wrong. Please try again.',
-    productsTitle: 'Everything your business needs',
-    productsSub: 'A unified platform for cross-border financial operations.',
-    products: [
-      { title: 'International Payments', desc: 'Pay suppliers abroad in multiple currencies — fast, traceable, and without banking friction.' },
-      { title: 'International Collections', desc: 'Receive payments from global clients with structured, trackable orders.' },
-      { title: 'OTC Exchange', desc: 'Convert between fiat and digital assets at competitive institutional rates.' },
-      { title: 'USDC Wallets', desc: 'Hold, send, and receive USDC from your own on-chain wallet — integrated into your account.' },
+    features: [
+      {
+        tag: 'OTC Exchange',
+        title: 'Buy & sell crypto at institutional rates',
+        desc: 'Convert between fiat and digital assets with a guided order flow. Fixed spreads, live USD/COP rates, and full traceability from order creation to settlement.',
+        bullets: ['USDC · USDT · EURC', 'Live rate + spread preview', 'Admin-verified settlements'],
+      },
+      {
+        tag: 'Payments',
+        title: 'Pay suppliers anywhere in the world',
+        desc: 'Create supplier records and submit payment orders in multiple currencies. Convexo handles routing and sends proof of payment directly to you.',
+        bullets: ['Bank transfer & crypto', 'Multi-currency support', 'Proof of payment per order'],
+      },
+      {
+        tag: 'Collections',
+        title: 'Collect from global clients effortlessly',
+        desc: 'Issue structured collection orders to your clients with trackable status updates. Every collection has a full audit trail.',
+        bullets: ['Trackable order status', 'Client-linked invoicing', 'Automated notifications'],
+      },
+      {
+        tag: 'Digital Wallets',
+        title: 'Your on-chain wallet, integrated',
+        desc: 'Every account includes an embedded Ethereum and Solana wallet. Deposit, withdraw, or use your USDC balance directly inside Convexo.',
+        bullets: ['Ethereum + Solana', 'USDC · USDT · EURC balances', 'Export key anytime'],
+      },
     ],
     tagline: 'Institutional-grade B2B payment infrastructure.',
     legal: [
@@ -34,16 +52,34 @@ const COPY = {
     badge: 'Infraestructura Financiera B2B',
     headline: 'Pagos Internacionales\nPara Empresas',
     sub: 'Convexo centraliza pagos internacionales, cobros y operaciones con activos digitales — dando a tu equipo control total con infraestructura de nivel institucional.',
-    cta: 'Iniciar sesión en tu cuenta',
+    cta: 'Comenzar',
     loading: 'Configurando tu cuenta…',
     error: 'Algo salió mal. Por favor intenta nuevamente.',
-    productsTitle: 'Todo lo que tu empresa necesita',
-    productsSub: 'Una plataforma unificada para operaciones financieras internacionales.',
-    products: [
-      { title: 'Pagos Internacionales', desc: 'Paga a tus proveedores en el exterior en múltiples monedas — rápido, trazable y sin fricción bancaria.' },
-      { title: 'Cobros Internacionales', desc: 'Recibe pagos de tus clientes globales con órdenes estructuradas y rastreables.' },
-      { title: 'OTC Exchange', desc: 'Convierte entre moneda fiat y activos digitales a tasas institucionales competitivas.' },
-      { title: 'Billeteras USDC', desc: 'Mantén, envía y recibe USDC desde tu propia billetera on-chain — integrada en tu cuenta.' },
+    features: [
+      {
+        tag: 'OTC Exchange',
+        title: 'Compra y vende cripto a tasas institucionales',
+        desc: 'Convierte entre fiat y activos digitales con un flujo de orden guiado. Spreads fijos, tasas USD/COP en vivo y trazabilidad completa desde la creación hasta la liquidación.',
+        bullets: ['USDC · USDT · EURC', 'Tasa en vivo + vista previa del spread', 'Liquidaciones verificadas por admin'],
+      },
+      {
+        tag: 'Pagos',
+        title: 'Paga a proveedores en cualquier parte del mundo',
+        desc: 'Crea registros de proveedores y envía órdenes de pago en múltiples monedas. Convexo gestiona el enrutamiento y te envía el comprobante directamente.',
+        bullets: ['Transferencia bancaria y cripto', 'Soporte multimoneda', 'Comprobante de pago por orden'],
+      },
+      {
+        tag: 'Cobros',
+        title: 'Cobra a tus clientes globales sin fricciones',
+        desc: 'Emite órdenes de cobro estructuradas a tus clientes con actualizaciones de estado rastreables. Cada cobro tiene un historial de auditoría completo.',
+        bullets: ['Estado de orden rastreable', 'Facturación vinculada al cliente', 'Notificaciones automáticas'],
+      },
+      {
+        tag: 'Billeteras Digitales',
+        title: 'Tu wallet on-chain, integrada',
+        desc: 'Cada cuenta incluye una wallet embebida de Ethereum y Solana. Deposita, retira o usa tu saldo USDC directamente dentro de Convexo.',
+        bullets: ['Ethereum + Solana', 'Saldos USDC · USDT · EURC', 'Exporta tu clave cuando quieras'],
+      },
     ],
     tagline: 'Infraestructura de pagos B2B de nivel institucional.',
     legal: [
@@ -74,39 +110,24 @@ const SOCIAL = [
   },
 ]
 
-const PRODUCT_ICONS = [
-  // Payments — outbound arrow through globe meridian
-  <svg key="pay" viewBox="0 0 48 48" fill="none" aria-hidden="true" style={{ width: 38, height: 38 }}>
-    <circle cx="24" cy="24" r="18" stroke="#334EAC" strokeWidth="1.5" strokeOpacity="0.5" />
-    <ellipse cx="24" cy="24" rx="8" ry="18" stroke="#BAD6EB" strokeWidth="1" strokeOpacity="0.25" />
-    <line x1="6" y1="24" x2="42" y2="24" stroke="#BAD6EB" strokeWidth="1" strokeOpacity="0.25" />
-    <path d="M20 24h12M27 19l5 5-5 5" stroke="#BAD6EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>,
-  // Collections — inbound arrow through globe meridian
-  <svg key="col" viewBox="0 0 48 48" fill="none" aria-hidden="true" style={{ width: 38, height: 38 }}>
-    <circle cx="24" cy="24" r="18" stroke="#334EAC" strokeWidth="1.5" strokeOpacity="0.5" />
-    <ellipse cx="24" cy="24" rx="8" ry="18" stroke="#BAD6EB" strokeWidth="1" strokeOpacity="0.25" />
-    <line x1="6" y1="24" x2="42" y2="24" stroke="#BAD6EB" strokeWidth="1" strokeOpacity="0.25" />
-    <path d="M28 24H16M21 19l-5 5 5 5" stroke="#BAD6EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>,
-  // OTC — two-way swap arrows
-  <svg key="otc" viewBox="0 0 48 48" fill="none" aria-hidden="true" style={{ width: 38, height: 38 }}>
-    <circle cx="24" cy="24" r="18" stroke="#334EAC" strokeWidth="1.5" strokeOpacity="0.5" />
-    <path d="M16 20h16M28 16l4 4-4 4" stroke="#BAD6EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M32 28H16M20 24l-4 4 4 4" stroke="#BAD6EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>,
-  // USDC / USDT / EURC — stacked token logos
-  <div key="tokens" style={{ position: 'relative', width: 64, height: 38, display: 'flex', alignItems: 'center' }}>
-    {['/tokens/usdc.png', '/tokens/usdt.png', '/tokens/eurc.png'].map((src, i) => (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img key={src} src={src} alt="" style={{
-        width: 30, height: 30, borderRadius: '50%',
-        position: 'absolute', left: i * 17,
-        border: '2px solid rgba(2,0,26,0.9)',
-        boxShadow: '0 0 0 1px rgba(186,214,235,0.12)',
-      }} />
-    ))}
-  </div>,
+// Feature visual placeholders — replace src with real screenshots when available
+const FEATURE_VISUALS = [
+  // OTC
+  <FeatureVisual key="otc" gradient="linear-gradient(135deg, #02001A 0%, #2A0144 60%, #081F5C 100%)" accent="#334EAC">
+    <OtcMockup />
+  </FeatureVisual>,
+  // Payments
+  <FeatureVisual key="pay" gradient="linear-gradient(135deg, #02001A 0%, #081F5C 60%, #0d2060 100%)" accent="#BAD6EB">
+    <PaymentMockup />
+  </FeatureVisual>,
+  // Collections
+  <FeatureVisual key="col" gradient="linear-gradient(135deg, #02001A 0%, #401777 60%, #2A0144 100%)" accent="#a78bfa">
+    <CollectionMockup />
+  </FeatureVisual>,
+  // Wallets
+  <FeatureVisual key="wal" gradient="linear-gradient(135deg, #081F5C 0%, #02001A 60%, #0f2040 100%)" accent="#10b981">
+    <WalletMockup />
+  </FeatureVisual>,
 ]
 
 export default function LandingPage() {
@@ -149,7 +170,7 @@ export default function LandingPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: 'linear-gradient(160deg, #02001A 0%, #110020 50%, #02001A 100%)',
       color: 'white',
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif",
@@ -160,37 +181,36 @@ export default function LandingPage() {
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 40px', height: 64,
-        background: 'rgba(2,0,26,0.85)',
-        backdropFilter: 'blur(12px)',
+        padding: '0 clamp(20px, 5vw, 48px)', height: 60,
+        background: 'rgba(2,0,26,0.9)',
+        backdropFilter: 'blur(16px)',
         borderBottom: '1px solid rgba(186,214,235,0.07)',
       }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/convexopayments.png" alt="Convexo" style={{ height: 34, width: 'auto' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={toggleLang} style={{
-            background: 'none',
-            border: '1px solid rgba(186,214,235,0.18)',
-            borderRadius: 6, padding: '5px 12px',
-            color: 'rgba(186,214,235,0.6)', fontSize: 11,
-            fontWeight: 700, cursor: 'pointer', letterSpacing: '0.8px',
-          }}>
-            {lang === 'en' ? 'ES' : 'EN'}
-          </button>
-          <NavSignIn ready={ready} label={c.cta} status={status} lang={lang} />
-        </div>
+        <img src="/convexopaymentshorizontal.png" alt="Convexo Payments" style={{ height: 28, width: 'auto' }} />
+        <button onClick={toggleLang} style={{
+          background: 'none',
+          border: '1px solid rgba(186,214,235,0.18)',
+          borderRadius: 6, padding: '5px 12px',
+          color: 'rgba(186,214,235,0.6)', fontSize: 11,
+          fontWeight: 700, cursor: 'pointer', letterSpacing: '0.8px',
+        }}>
+          {lang === 'en' ? 'ES' : 'EN'}
+        </button>
       </nav>
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
       <section style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '120px 40px 80px', position: 'relative', textAlign: 'center',
+        minHeight: '100dvh',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 'clamp(90px, 12vw, 130px) clamp(20px, 5vw, 48px) clamp(40px, 6vw, 60px)',
+        position: 'relative', textAlign: 'center',
       }}>
-        {/* Background glow */}
+        {/* Background glows */}
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
           <div style={{
             position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
-            width: 700, height: 700,
+            width: 'min(700px, 90vw)', height: 'min(700px, 90vw)',
             background: 'radial-gradient(circle, rgba(51,78,172,0.14) 0%, transparent 65%)',
             borderRadius: '50%',
           }} />
@@ -200,21 +220,15 @@ export default function LandingPage() {
             background: 'radial-gradient(circle, rgba(64,23,119,0.25) 0%, transparent 70%)',
             borderRadius: '50%',
           }} />
-          <div style={{
-            position: 'absolute', bottom: '10%', left: '5%',
-            width: 280, height: 280,
-            background: 'radial-gradient(circle, rgba(8,31,92,0.2) 0%, transparent 70%)',
-            borderRadius: '50%',
-          }} />
         </div>
 
-        <div style={{ position: 'relative', maxWidth: 680 }}>
+        <div style={{ position: 'relative', maxWidth: 680, width: '100%' }}>
           {/* Badge */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             background: 'rgba(51,78,172,0.12)',
             border: '1px solid rgba(51,78,172,0.3)',
-            borderRadius: 100, padding: '6px 18px', marginBottom: 32,
+            borderRadius: 100, padding: '6px 18px', marginBottom: 28,
           }}>
             <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#334EAC' }} />
             <span style={{ fontSize: 11, color: 'rgba(186,214,235,0.75)', letterSpacing: '1px', fontWeight: 600 }}>
@@ -224,24 +238,24 @@ export default function LandingPage() {
 
           {/* Headline */}
           <h1 style={{
-            fontSize: 'clamp(38px, 6vw, 72px)',
+            fontSize: 'clamp(36px, 7vw, 72px)',
             fontWeight: 700, lineHeight: 1.08,
             letterSpacing: '-1.5px', color: 'white',
-            marginBottom: 24, whiteSpace: 'pre-line',
+            marginBottom: 20, whiteSpace: 'pre-line',
           }}>
             {c.headline}
           </h1>
 
           {/* Subtitle */}
           <p style={{
-            fontSize: 'clamp(15px, 2vw, 17px)',
+            fontSize: 'clamp(14px, 2vw, 17px)',
             color: 'rgba(186,214,235,0.55)', lineHeight: 1.75,
-            maxWidth: 560, margin: '0 auto 48px',
+            maxWidth: 520, margin: '0 auto 40px',
           }}>
             {c.sub}
           </p>
 
-          {/* CTA */}
+          {/* Single CTA */}
           {status === 'loading' ? (
             <p style={{ fontSize: 14, color: 'rgba(186,214,235,0.45)' }}>{c.loading}</p>
           ) : (
@@ -254,7 +268,7 @@ export default function LandingPage() {
           )}
 
           {/* Trust row */}
-          <div style={{ display: 'flex', gap: 28, justifyContent: 'center', marginTop: 40, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'clamp(16px, 4vw, 28px)', justifyContent: 'center', marginTop: 36, flexWrap: 'wrap' }}>
             {c.trust.map(b => (
               <span key={b} style={{ fontSize: 11, color: 'rgba(186,214,235,0.28)', letterSpacing: '0.5px' }}>
                 {b}
@@ -264,50 +278,70 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Products ───────────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 40px 100px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 60 }}>
-          <h2 style={{
-            fontSize: 'clamp(26px, 3.5vw, 40px)',
-            fontWeight: 700, letterSpacing: '-0.5px', marginBottom: 14,
-          }}>
-            {c.productsTitle}
-          </h2>
-          <p style={{ fontSize: 15, color: 'rgba(186,214,235,0.45)', maxWidth: 420, margin: '0 auto' }}>
-            {c.productsSub}
-          </p>
-        </div>
+      {/* ── Features ───────────────────────────────────────────────────────── */}
+      <section style={{ padding: 'clamp(40px, 8vw, 80px) clamp(20px, 5vw, 48px) clamp(60px, 10vw, 100px)', maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(60px, 10vw, 100px)' }}>
+          {c.features.map((feature, i) => (
+            <div key={feature.tag} className={`landing-feature-row${i % 2 === 1 ? ' reverse' : ''}`}
+              style={{ direction: i % 2 === 1 ? 'rtl' : 'ltr' }}>
+              {/* Visual */}
+              <div style={{ direction: 'ltr' }}>
+                {FEATURE_VISUALS[i]}
+              </div>
 
-        <div className="landing-products-grid">
-          {c.products.map((item, i) => (
-            <div key={item.title} style={{
-              background: 'rgba(255,255,255,0.025)',
-              border: '1px solid rgba(186,214,235,0.07)',
-              borderRadius: 16, padding: '32px 26px',
-            }}>
-              <div style={{ marginBottom: 20 }}>{PRODUCT_ICONS[i]}</div>
-              <h3 style={{
-                fontSize: 14, fontWeight: 700,
-                color: 'rgba(255,255,255,0.88)', marginBottom: 10, letterSpacing: '-0.2px',
-              }}>
-                {item.title}
-              </h3>
-              <p style={{ fontSize: 12.5, color: 'rgba(186,214,235,0.4)', lineHeight: 1.65 }}>
-                {item.desc}
-              </p>
+              {/* Content */}
+              <div style={{ direction: 'ltr', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(51,78,172,0.12)', border: '1px solid rgba(51,78,172,0.25)',
+                  borderRadius: 100, padding: '4px 14px', alignSelf: 'flex-start',
+                }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#BAD6EB', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                    {feature.tag}
+                  </span>
+                </div>
+
+                <h2 style={{
+                  fontSize: 'clamp(22px, 3vw, 32px)',
+                  fontWeight: 700, lineHeight: 1.2,
+                  letterSpacing: '-0.5px', color: 'white',
+                }}>
+                  {feature.title}
+                </h2>
+
+                <p style={{
+                  fontSize: 'clamp(14px, 1.5vw, 16px)',
+                  color: 'rgba(186,214,235,0.55)', lineHeight: 1.75,
+                }}>
+                  {feature.desc}
+                </p>
+
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 10, listStyle: 'none', padding: 0 }}>
+                  {feature.bullets.map((b) => (
+                    <li key={b} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(51,78,172,0.2)', border: '1px solid rgba(51,78,172,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+                          <polyline points="2 6 5 9 10 3" stroke="#BAD6EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                      <span style={{ fontSize: 13, color: 'rgba(186,214,235,0.7)', fontWeight: 500 }}>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <footer style={{ borderTop: '1px solid rgba(186,214,235,0.07)', padding: '52px 40px 40px' }}>
+      <footer style={{ borderTop: '1px solid rgba(186,214,235,0.07)', padding: 'clamp(36px, 6vw, 52px) clamp(20px, 5vw, 48px) clamp(24px, 4vw, 40px)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div className="landing-footer-grid">
             {/* Brand */}
             <div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/convexopayments.png" alt="Convexo" style={{ height: 30, width: 'auto', marginBottom: 14 }} />
+              <img src="/convexopaymentshorizontal.png" alt="Convexo" style={{ height: 26, width: 'auto', marginBottom: 14 }} />
               <p style={{ fontSize: 12, color: 'rgba(186,214,235,0.3)', maxWidth: 240, lineHeight: 1.6 }}>
                 {c.tagline}
               </p>
@@ -330,7 +364,7 @@ export default function LandingPage() {
                 {SOCIAL.map(s => (
                   <a key={s.name} href={s.href} target="_blank" rel="noopener noreferrer" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 34, height: 34,
+                    width: 36, height: 36,
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(186,214,235,0.1)',
                     borderRadius: 8,
@@ -351,26 +385,160 @@ export default function LandingPage() {
   )
 }
 
-function NavSignIn({ ready, label, status, lang }: { ready: boolean; label: string; status: string; lang: Lang }) {
-  const { login } = usePrivy()
-  if (status === 'loading') return null
+// ── Feature visual panel (placeholder for product screenshots) ────────────────
+
+function FeatureVisual({ gradient, accent, children }: { gradient: string; accent: string; children: React.ReactNode }) {
+  void accent
   return (
-    <button
-      onClick={login}
-      disabled={!ready}
-      style={{
-        padding: '9px 20px',
-        background: '#334EAC', color: 'white',
-        border: 'none', borderRadius: 8,
-        fontSize: 13, fontWeight: 600,
-        cursor: ready ? 'pointer' : 'not-allowed',
-        opacity: ready ? 1 : 0.5,
-      }}
-    >
-      {ready ? (lang === 'en' ? 'Sign in' : 'Iniciar sesión') : '…'}
-    </button>
+    <div style={{
+      borderRadius: 20,
+      overflow: 'hidden',
+      background: gradient,
+      border: '1px solid rgba(186,214,235,0.08)',
+      aspectRatio: '4/3',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    }}>
+      {/* Grid pattern overlay */}
+      <div style={{
+        position: 'absolute', inset: 0, opacity: 0.04,
+        backgroundImage: 'linear-gradient(rgba(186,214,235,1) 1px, transparent 1px), linear-gradient(90deg, rgba(186,214,235,1) 1px, transparent 1px)',
+        backgroundSize: '40px 40px',
+      }} />
+      {/* Glow */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: `radial-gradient(ellipse at 50% 80%, ${accent}22 0%, transparent 60%)`,
+      }} />
+      <div style={{ position: 'relative', width: '80%', maxWidth: 360 }}>
+        {children}
+      </div>
+    </div>
   )
 }
+
+// ── Inline mockup UI cards ─────────────────────────────────────────────────────
+
+function MockCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.06)',
+      border: '1px solid rgba(186,214,235,0.1)',
+      borderRadius: 12, padding: '14px 16px',
+      ...style,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+function MockRow({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
+      <span style={{ fontSize: 11, color: 'rgba(186,214,235,0.45)' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: accent ?? 'rgba(255,255,255,0.85)', fontFamily: 'monospace' }}>{value}</span>
+    </div>
+  )
+}
+
+function OtcMockup() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <MockCard>
+        <div style={{ fontSize: 9, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)', marginBottom: 8 }}>Tasa USD / COP</div>
+        <div style={{ fontSize: 26, fontWeight: 800, color: 'white', letterSpacing: '-1px' }}>4,320 COP</div>
+        <div style={{ fontSize: 10, color: 'rgba(186,214,235,0.35)', marginTop: 2 }}>Spread 1.0% aplicado</div>
+      </MockCard>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <MockCard style={{ textAlign: 'center', padding: '12px 10px' }}>
+          <div style={{ fontSize: 10, color: 'rgba(186,214,235,0.4)', marginBottom: 4 }}>COMPRAR</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#BAD6EB' }}>USDC</div>
+        </MockCard>
+        <MockCard style={{ textAlign: 'center', padding: '12px 10px' }}>
+          <div style={{ fontSize: 10, color: 'rgba(186,214,235,0.4)', marginBottom: 4 }}>VENDER</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>USDC</div>
+        </MockCard>
+      </div>
+      <MockCard>
+        <MockRow label="Monto" value="500 USDC" />
+        <MockRow label="Recibes (COP)" value="$2,160,000" accent="#BAD6EB" />
+        <MockRow label="Estado" value="LIQUIDADO" accent="#10b981" />
+      </MockCard>
+    </div>
+  )
+}
+
+function PaymentMockup() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <MockCard>
+        <div style={{ fontSize: 9, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)', marginBottom: 10 }}>Nueva orden de pago</div>
+        <MockRow label="Proveedor" value="Proveedor S.A." />
+        <MockRow label="Monto" value="USD 12,400" />
+        <MockRow label="Método" value="Wire Transfer" />
+        <MockRow label="Estado" value="PROCESANDO" accent="#f59e0b" />
+      </MockCard>
+      <MockCard style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}>
+        <div style={{ fontSize: 10, color: '#10b981', fontWeight: 700 }}>✓ Comprobante enviado</div>
+        <div style={{ fontSize: 10, color: 'rgba(186,214,235,0.4)', marginTop: 2 }}>Orden #A4F3B2 · hace 2h</div>
+      </MockCard>
+    </div>
+  )
+}
+
+function CollectionMockup() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <MockCard>
+        <div style={{ fontSize: 9, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)', marginBottom: 10 }}>Órdenes de cobro</div>
+        {[
+          { client: 'Cliente Corp.', amount: 'USD 8,000', status: 'PAGADO', color: '#10b981' },
+          { client: 'Global Inc.',   amount: 'USD 3,200', status: 'PENDIENTE', color: '#f59e0b' },
+          { client: 'Nexus SAS',     amount: 'USD 5,500', status: 'ENVIADO', color: '#BAD6EB' },
+        ].map((row) => (
+          <div key={row.client} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid rgba(186,214,235,0.07)' }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{row.client}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(186,214,235,0.6)', fontFamily: 'monospace' }}>{row.amount}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: row.color, background: row.color + '18', padding: '2px 7px', borderRadius: 99 }}>{row.status}</span>
+          </div>
+        ))}
+      </MockCard>
+    </div>
+  )
+}
+
+function WalletMockup() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <MockCard style={{ background: 'linear-gradient(145deg, #02001A 0%, #2A0144 60%, #081F5C 100%)', border: '1px solid rgba(186,214,235,0.12)' }}>
+        <div style={{ fontSize: 9, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgba(186,214,235,0.4)', marginBottom: 4 }}>Balance USDC</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: 'white', letterSpacing: '-1px' }}>2,840.50</div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+          {['/tokens/usdc.png', '/tokens/usdt.png', '/tokens/eurc.png'].map((src, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={i} src={src} alt="" style={{ width: 20, height: 20, borderRadius: '50%', border: '1px solid rgba(186,214,235,0.2)' }} />
+          ))}
+        </div>
+      </MockCard>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <MockCard style={{ textAlign: 'center', padding: '12px 8px' }}>
+          <div style={{ fontSize: 18, marginBottom: 4 }}>↓</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>Deposit</div>
+          <div style={{ fontSize: 9, color: 'rgba(186,214,235,0.4)' }}>Ethereum · Solana</div>
+        </MockCard>
+        <MockCard style={{ textAlign: 'center', padding: '12px 8px' }}>
+          <div style={{ fontSize: 18, marginBottom: 4 }}>↑</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>Withdraw</div>
+          <div style={{ fontSize: 9, color: 'rgba(186,214,235,0.4)' }}>On-chain</div>
+        </MockCard>
+      </div>
+    </div>
+  )
+}
+
+// ── CTA button ─────────────────────────────────────────────────────────────────
 
 function HeroSignIn({ ready, label }: { ready: boolean; label: string }) {
   const { login } = usePrivy()
@@ -380,17 +548,23 @@ function HeroSignIn({ ready, label }: { ready: boolean; label: string }) {
       disabled={!ready}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 10,
-        padding: '16px 40px',
+        padding: 'clamp(14px, 2vw, 18px) clamp(32px, 5vw, 52px)',
         background: 'linear-gradient(135deg, #334EAC 0%, #081F5C 100%)',
         color: 'white',
-        border: '1px solid rgba(186,214,235,0.12)',
-        borderRadius: 12, fontSize: 15, fontWeight: 600,
+        border: '1px solid rgba(186,214,235,0.15)',
+        borderRadius: 14, fontSize: 'clamp(14px, 2vw, 16px)', fontWeight: 600,
         cursor: ready ? 'pointer' : 'not-allowed',
         opacity: ready ? 1 : 0.5,
-        boxShadow: '0 0 48px rgba(51,78,172,0.2)',
+        boxShadow: '0 0 48px rgba(51,78,172,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
+        letterSpacing: '-0.2px',
       }}
     >
       {ready ? label : '…'}
+      {ready && (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      )}
     </button>
   )
 }
