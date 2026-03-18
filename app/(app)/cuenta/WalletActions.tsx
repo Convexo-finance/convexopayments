@@ -97,12 +97,14 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
               type="button"
               onClick={() => setDepositChain(chain)}
               style={{
-                padding: '6px 16px', borderRadius: 20, border: `1px solid ${depositChain === chain ? '#334EAC' : 'rgba(186,214,235,0.2)'}`,
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 20, border: `1px solid ${depositChain === chain ? '#334EAC' : 'rgba(186,214,235,0.2)'}`,
                 background: depositChain === chain ? 'rgba(51,78,172,0.25)' : 'rgba(255,255,255,0.04)',
                 color: depositChain === chain ? '#BAD6EB' : 'rgba(186,214,235,0.55)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                textTransform: 'capitalize',
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/chains/${chain}.png`} alt={chain} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} />
               {chain === 'ethereum' ? 'Ethereum' : 'Solana'}
             </button>
           ))}
@@ -191,12 +193,14 @@ export function WalletActions({ privyToken, balance }: WalletActionsProps) {
                     type="button"
                     onClick={() => setWithdrawChain(chain)}
                     style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
                       padding: '6px 14px', borderRadius: 20, border: `1px solid ${withdrawChain === chain ? '#334EAC' : 'rgba(186,214,235,0.2)'}`,
                       background: withdrawChain === chain ? 'rgba(51,78,172,0.25)' : 'rgba(255,255,255,0.04)',
                       color: withdrawChain === chain ? '#BAD6EB' : 'rgba(186,214,235,0.55)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                      textTransform: 'capitalize',
                     }}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/chains/${chain}.png`} alt={chain} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} />
                     {chain === 'ethereum' ? 'Ethereum' : 'Solana'}
                   </button>
                 ))}

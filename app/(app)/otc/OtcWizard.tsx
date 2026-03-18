@@ -3,6 +3,16 @@ import { useState, useEffect } from 'react'
 import { useWallets } from '@privy-io/react-auth'
 import { useWallets as useSolanaWallets } from '@privy-io/react-auth/solana'
 import QRCode from 'react-qr-code'
+import Image from 'next/image'
+
+const CHAIN_LOGOS: Record<string, string> = {
+  'Ethereum': '/chains/ethereum.png',
+  'Tron':     '/chains/tron.png',
+  'Solana':   '/chains/solana.png',
+  'Arbitrum': '/chains/arb.png',
+  'Base':     '/chains/base_logo.svg',
+  'Unichain': '/chains/unichain.png',
+}
 
 const DEFAULT_SPREAD = 0.01
 const TOKENS = ['USDC', 'USDT'] as const
@@ -231,7 +241,9 @@ export function OtcWizard({
                   onClick={() => { setWalletSource('embedded'); setSelectedEmbeddedAddress(w.address); setEmbeddedChain('ethereum') }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,126,234,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>⬡</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,126,234,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                      <Image src="/chains/ethereum.png" alt="Ethereum" width={24} height={24} style={{ objectFit: 'contain' }} />
+                    </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Wallet embebida</div>
                       <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(186,214,235,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -249,7 +261,9 @@ export function OtcWizard({
                   onClick={() => { setWalletSource('embedded'); setSelectedEmbeddedAddress(solanaEmbedded.address); setEmbeddedChain('solana') }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(153,69,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>◎</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(153,69,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                      <Image src="/chains/solana.png" alt="Solana" width={24} height={24} style={{ objectFit: 'contain' }} />
+                    </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Wallet embebida</div>
                       <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(186,214,235,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -284,11 +298,17 @@ export function OtcWizard({
                         type="button"
                         onClick={() => setExternalChain(c)}
                         style={{
-                          padding: '6px 14px', borderRadius: 8, border: `1px solid ${externalChain === c ? '#334EAC' : 'rgba(186,214,235,0.2)'}`,
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          padding: '6px 12px', borderRadius: 8, border: `1px solid ${externalChain === c ? '#334EAC' : 'rgba(186,214,235,0.2)'}`,
                           background: externalChain === c ? 'rgba(51,78,172,0.2)' : 'rgba(255,255,255,0.04)',
                           color: externalChain === c ? '#BAD6EB' : 'rgba(186,214,235,0.55)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                         }}
-                      >{c}</button>
+                      >
+                        {CHAIN_LOGOS[c] && (
+                          <Image src={CHAIN_LOGOS[c]} alt={c} width={16} height={16} style={{ objectFit: 'contain', borderRadius: '50%' }} />
+                        )}
+                        {c}
+                      </button>
                     ))}
                   </div>
                 </div>

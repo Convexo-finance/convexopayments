@@ -53,6 +53,59 @@ body {
   flex-wrap: wrap;
 }
 
+/* ── Landing page ───────────────────────────────────────────────────────── */
+
+.landing-products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.landing-footer-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 48px;
+  align-items: start;
+}
+
+/* ── Legal pages ─────────────────────────────────────────────────────────── */
+
+.legal-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 64px;
+  align-items: start;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 100px 40px 80px;
+}
+
+@media (max-width: 900px) {
+  .landing-products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .landing-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .legal-layout {
+    grid-template-columns: 1fr;
+    padding: 88px 24px 60px;
+  }
+
+  .legal-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .landing-products-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .two-col-layout,
   .two-col-layout-narrow {
