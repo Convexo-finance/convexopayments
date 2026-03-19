@@ -2,20 +2,22 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Topbar } from '@/components/layout/Topbar'
 import { getWalletData } from '@/lib/actions/wallet'
+import { getProfile } from '@/lib/actions/profile'
 import { WalletActions } from './WalletActions'
 import { OnChainBalances } from './OnChainBalances'
+import { WalletSyncer } from '@/components/ui/WalletSyncer'
 
 export default async function CuentaPage() {
   const cookieStore = await cookies()
   const privyToken = cookieStore.get('privy-token')?.value
   if (!privyToken) redirect('/')
 
-  const walletData = await getWalletData(privyToken).catch(() => ({
-    balance: 0,
-    ownProfiles: [],
-    convexoAccounts: [],
-    requests: [],
-  }))
+  const [walletData, profile] = await Promise.all([
+    getWalletData(privyToken).catch(() => ({
+      balance: 0, ownProfiles: [], convexoAccounts: [], requests: [],
+    })),
+    getProfile(privyToken).catch(() => null),
+  ])
 
   return (
     <div>
@@ -57,6 +59,11 @@ export default async function CuentaPage() {
         </div>
 
         <OnChainBalances />
+        <WalletSyncer
+          privyToken={privyToken}
+          savedEvm={(profile?.evm_address as string) ?? null}
+          savedSolana={(profile?.solana_address as string) ?? null}
+        />
       </div>
     </div>
   )

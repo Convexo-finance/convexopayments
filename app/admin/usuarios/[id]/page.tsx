@@ -24,9 +24,14 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
           first_name, last_name, contact_email,
           phone_country_code, phone,
           id_type, id_number,
-          address, city, state, country,
-          instagram, twitter, linkedin,
-          id_doc_url, rut_url, rut_status, rut_admin_note
+          address, city, state, country, postal_code,
+          instagram, twitter, linkedin, website_url,
+          monthly_volume,
+          supplier_countries, supplier_annual_volume,
+          client_countries, client_annual_volume,
+          evm_address, solana_address,
+          id_doc_url, rut_url, proof_of_address_url,
+          rut_status, rut_admin_note
         )
       `)
       .eq('id', id)
@@ -41,7 +46,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
   return (
     <div>
       <Topbar title="User Detail" breadcrumb={user.email} />
-      <div style={{ padding: 24, maxWidth: 800 }}>
+      <div style={{ padding: 24, maxWidth: 1100 }}>
         <UserDetailClient user={user as unknown as Parameters<typeof UserDetailClient>[0]['user']} privyToken={privyToken} />
       </div>
     </div>

@@ -1,7 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
+import { Country } from 'country-state-city'
 import { PaymentProfileForm } from './PaymentProfileForm'
 import { PhoneInput } from '@/components/ui/PhoneInput'
 import { AddressInput } from '@/components/ui/AddressInput'
@@ -20,11 +21,146 @@ const INFO_STEPS = [
 ]
 const STEPS = [...INFO_STEPS, 'Payment Methods']
 
+// Company types keyed by ISO country code. Falls back to OTHER.
 const COMPANY_TYPES: Record<string, string[]> = {
-  CN: ['WFOE', 'JV', 'Representative Office', 'Other'],
-  US: ['LLC', 'Corporation', 'Partnership', 'Sole Proprietorship', 'Other'],
-  EU: ['GmbH', 'SRL', 'SA', 'Ltd', 'Other'],
+  // Latin America
+  CO: ['SAS', 'SA', 'Ltda', 'Cooperativa', 'Empresa Unipersonal', 'Otra'],
+  MX: ['SA de CV', 'SAPI de CV', 'SRL de CV', 'SC', 'Asociación Civil', 'Otra'],
+  BR: ['LTDA', 'SA', 'MEI', 'EIRELI', 'SS', 'Outra'],
+  AR: ['SA', 'SRL', 'SAS', 'Sociedad en Comandita', 'Cooperativa', 'Otra'],
+  CL: ['SpA', 'SA', 'LTDA', 'Cooperativa', 'Fundación', 'Otra'],
+  PE: ['SAC', 'SAA', 'EIRL', 'SRL', 'Otra'],
+  PA: ['SA', 'LLC', 'Fundación de Interés Privado', 'Otra'],
+  EC: ['SA', 'Cía Ltda', 'SAS', 'Otra'],
+  UY: ['SA', 'SRL', 'SAS', 'Cooperativa', 'Otra'],
+  CR: ['SA', 'SRL', 'Otra'],
+  // North America
+  US: ['LLC', 'Corporation (C-Corp)', 'S-Corporation', 'LLP', 'Partnership', 'Sole Proprietorship', 'Other'],
+  CA: ['Corporation', 'Ltd', 'Inc', 'LLP', 'Partnership', 'Sole Proprietorship', 'Other'],
+  // Europe
+  GB: ['Ltd', 'PLC', 'LLP', 'Partnership', 'Sole Trader', 'Other'],
+  DE: ['GmbH', 'AG', 'UG', 'OHG', 'KG', 'GbR', 'Other'],
+  ES: ['SL', 'SA', 'SLU', 'Autónomo', 'Cooperativa', 'Other'],
+  FR: ['SAS', 'SARL', 'SA', 'EURL', 'SCI', 'Other'],
+  NL: ['BV', 'NV', 'VOF', 'Other'],
+  PT: ['LDA', 'SA', 'Cooperativa', 'Other'],
+  IT: ['SRL', 'SpA', 'SNC', 'SAS', 'Other'],
+  // Asia
+  CN: ['WFOE', 'JV', 'Representative Office', 'VIE Structure', 'Other'],
+  HK: ['Limited', 'Partnership', 'Sole Proprietorship', 'Other'],
+  SG: ['Pte Ltd', 'Ltd', 'LLP', 'Sole Proprietorship', 'Other'],
+  IN: ['Pvt Ltd', 'Ltd', 'LLP', 'OPC', 'Partnership', 'Sole Proprietorship', 'Other'],
+  // Middle East
+  AE: ['LLC', 'Free Zone Company', 'Branch Office', 'Sole Establishment', 'Other'],
+  // Fallback
   OTHER: ['LLC', 'Corporation', 'Ltd', 'Partnership', 'Other'],
+}
+
+function getCompanyTypes(isoCode: string): string[] {
+  return COMPANY_TYPES[isoCode] ?? COMPANY_TYPES['OTHER']
+}
+
+// ── Single-select country picker ──
+function RegistrationCountryPicker({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (isoCode: string, name: string) => void
+}) {
+  const [search, setSearch] = useState('')
+  const [open, setOpen] = useState(!value)
+
+  const allCountries = useMemo(() => Country.getAllCountries(), [])
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase()
+    return q
+      ? allCountries.filter((c) => c.name.toLowerCase().includes(q) || c.isoCode.toLowerCase().includes(q))
+      : allCountries
+  }, [search, allCountries])
+
+  const selectedCountry = allCountries.find((c) => c.isoCode === value)
+
+  if (!open && selectedCountry) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          flex: 1,
+          padding: '10px 12px',
+          borderRadius: 8,
+          border: '1px solid rgba(186,214,235,0.2)',
+          background: 'rgba(255,255,255,0.07)',
+          color: 'white',
+          fontSize: 14,
+        }}>
+          {selectedCountry.flag} {selectedCountry.name}
+        </div>
+        <button
+          onClick={() => { setOpen(true); setSearch('') }}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(186,214,235,0.2)',
+            borderRadius: 8,
+            color: 'rgba(186,214,235,0.7)',
+            fontSize: 12,
+            padding: '10px 14px',
+            cursor: 'pointer',
+          }}
+        >
+          Change
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <input
+        style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', marginBottom: 6 }}
+        placeholder="Search country..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        autoFocus
+      />
+      <div style={{
+        maxHeight: 200,
+        overflowY: 'auto',
+        border: '1px solid rgba(186,214,235,0.15)',
+        borderRadius: 8,
+        background: 'rgba(2,0,26,0.95)',
+      }}>
+        {filtered.slice(0, 120).map((c) => (
+          <button
+            key={c.isoCode}
+            onClick={() => {
+              onChange(c.isoCode, c.name)
+              setOpen(false)
+              setSearch('')
+            }}
+            style={{
+              display: 'block',
+              width: '100%',
+              textAlign: 'left',
+              padding: '8px 12px',
+              background: c.isoCode === value ? 'rgba(51,78,172,0.3)' : 'transparent',
+              border: 'none',
+              color: c.isoCode === value ? '#BAD6EB' : 'rgba(255,255,255,0.8)',
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            {c.flag} {c.name}
+          </button>
+        ))}
+        {filtered.length === 0 && (
+          <div style={{ padding: '10px 12px', color: 'rgba(186,214,235,0.4)', fontSize: 13 }}>
+            No countries found
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function EntityWizard({ entityType }: EntityWizardProps) {
@@ -43,7 +179,8 @@ export function EntityWizard({ entityType }: EntityWizardProps) {
 
   const [form, setForm] = useState({
     internal_name: '',
-    registration_country: 'OTHER',
+    registration_country: '',      // ISO code, e.g. "CO", "US"
+    registration_country_name: '', // human-readable, e.g. "Colombia"
     legal_name: '',
     company_type: '',
     registration_number: '',
@@ -76,12 +213,11 @@ export function EntityWizard({ entityType }: EntityWizardProps) {
       const token = await getAccessToken()
       if (!token) throw new Error('Not authenticated')
 
-      // Only send columns that exist in the DB — strip phone code helpers
       const payload = {
         internal_name: form.internal_name,
         legal_name: form.legal_name,
         company_type: form.company_type,
-        registration_country: form.registration_country,
+        registration_country: form.registration_country_name || form.registration_country,
         registration_number: form.registration_number,
         contact_email: form.contact_email,
         company_phone: form.company_phone ? `${form.company_phone_code} ${form.company_phone}` : '',
@@ -124,7 +260,7 @@ export function EntityWizard({ entityType }: EntityWizardProps) {
     router.push(createdId ? `${basePath}/${createdId}` : basePath)
   }
 
-  const companyTypes = COMPANY_TYPES[form.registration_country] ?? COMPANY_TYPES['OTHER']
+  const companyTypes = getCompanyTypes(form.registration_country)
   const isPaymentStep = step === INFO_STEPS.length
 
   return (
@@ -150,7 +286,7 @@ export function EntityWizard({ entityType }: EntityWizardProps) {
         </p>
       </div>
 
-      {/* Step 1: Registration */}
+      {/* Step 1: Registration — only internal name */}
       {step === 0 && (
         <div style={stepStyle}>
           <label style={labelStyle}>
@@ -162,43 +298,64 @@ export function EntityWizard({ entityType }: EntityWizardProps) {
               onChange={(e) => update('internal_name', e.target.value)}
             />
           </label>
-          <label style={labelStyle}>
-            Registration country
-            <select
-              style={inputStyle}
-              value={form.registration_country}
-              onChange={(e) => update('registration_country', e.target.value)}
-            >
-              <option value="CN">China</option>
-              <option value="US">United States</option>
-              <option value="EU">Europe</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </label>
         </div>
       )}
 
-      {/* Step 2: Company Details */}
+      {/* Step 2: Company Details — registration country at top */}
       {step === 1 && (
         <div style={stepStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={labelStyle as React.CSSProperties}>Registration country</span>
+            <RegistrationCountryPicker
+              value={form.registration_country}
+              onChange={(isoCode, name) => {
+                setForm((f) => ({
+                  ...f,
+                  registration_country: isoCode,
+                  registration_country_name: name,
+                  company_type: '', // reset when country changes
+                }))
+              }}
+            />
+          </div>
           <label style={labelStyle}>
             Legal name
-            <input style={inputStyle} placeholder="Official registered name" value={form.legal_name} onChange={(e) => update('legal_name', e.target.value)} />
+            <input
+              style={inputStyle}
+              placeholder="Official registered name"
+              value={form.legal_name}
+              onChange={(e) => update('legal_name', e.target.value)}
+            />
           </label>
           <label style={labelStyle}>
             Company type
-            <select style={inputStyle} value={form.company_type} onChange={(e) => update('company_type', e.target.value)}>
+            <select
+              style={inputStyle}
+              value={form.company_type}
+              onChange={(e) => update('company_type', e.target.value)}
+            >
               <option value="">Select...</option>
               {companyTypes.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </label>
           <label style={labelStyle}>
             Registration number
-            <input style={inputStyle} placeholder="Tax ID / Business registration" value={form.registration_number} onChange={(e) => update('registration_number', e.target.value)} />
+            <input
+              style={inputStyle}
+              placeholder="Tax ID / Business registration"
+              value={form.registration_number}
+              onChange={(e) => update('registration_number', e.target.value)}
+            />
           </label>
           <label style={labelStyle}>
             Contact email
-            <input style={inputStyle} type="email" placeholder="company@example.com" value={form.contact_email} onChange={(e) => update('contact_email', e.target.value)} />
+            <input
+              style={inputStyle}
+              type="email"
+              placeholder="company@example.com"
+              value={form.contact_email}
+              onChange={(e) => update('contact_email', e.target.value)}
+            />
           </label>
           {warning && <p style={{ color: '#f59e0b', fontSize: 13 }}>⚠ {warning}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, color: 'rgba(186,214,235,0.7)' }}>
@@ -218,7 +375,12 @@ export function EntityWizard({ entityType }: EntityWizardProps) {
         <div style={stepStyle}>
           <label style={labelStyle}>
             Contact person name
-            <input style={inputStyle} placeholder="Full name" value={form.contact_name} onChange={(e) => update('contact_name', e.target.value)} />
+            <input
+              style={inputStyle}
+              placeholder="Full name"
+              value={form.contact_name}
+              onChange={(e) => update('contact_name', e.target.value)}
+            />
           </label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, color: 'rgba(186,214,235,0.7)' }}>
             Contact person phone
@@ -231,7 +393,13 @@ export function EntityWizard({ entityType }: EntityWizardProps) {
           </div>
           <label style={labelStyle}>
             Contact person email
-            <input style={inputStyle} type="email" placeholder="contact@example.com" value={form.contact_person_email} onChange={(e) => update('contact_person_email', e.target.value)} />
+            <input
+              style={inputStyle}
+              type="email"
+              placeholder="contact@example.com"
+              value={form.contact_person_email}
+              onChange={(e) => update('contact_person_email', e.target.value)}
+            />
           </label>
         </div>
       )}
@@ -276,7 +444,7 @@ export function EntityWizard({ entityType }: EntityWizardProps) {
           </div>
 
           {addedCount > 0 && !showForm && (
-            <div style={{ background: '#d1fae5', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#065f46' }}>
+            <div style={{ background: 'rgba(16,185,129,0.15)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}>
               {addedCount} payment method{addedCount > 1 ? 's' : ''} added.
             </div>
           )}

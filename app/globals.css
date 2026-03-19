@@ -148,4 +148,14 @@ body {
   .metric-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+
+  /* Wallet addresses: show short form on mobile */
+  .wallet-full  { display: none; }
+  .wallet-short { display: inline; }
+}
+
+/* Desktop: show full address */
+@media (min-width: 769px) {
+  .wallet-full  { display: inline; }
+  .wallet-short { display: none; }
 }

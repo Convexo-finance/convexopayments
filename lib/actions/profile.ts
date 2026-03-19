@@ -23,6 +23,12 @@ export type ProfileInput = {
   twitter?: string
   linkedin?: string
   website_url?: string
+  supplier_countries?: string[]
+  supplier_annual_volume?: string
+  client_countries?: string[]
+  client_annual_volume?: string
+  evm_address?: string
+  solana_address?: string
 }
 
 export async function upsertProfile(privyToken: string, data: ProfileInput) {
@@ -136,7 +142,17 @@ export async function requestVerification(privyToken: string) {
  */
 export async function completeOnboarding(
   privyToken: string,
-  data: { first_name: string; last_name: string; contact_email?: string; phone_country_code: string; phone: string }
+  data: {
+    first_name: string
+    last_name: string
+    contact_email?: string
+    phone_country_code: string
+    phone: string
+    supplier_countries?: string[]
+    supplier_annual_volume?: string
+    client_countries?: string[]
+    client_annual_volume?: string
+  }
 ) {
   return upsertProfile(privyToken, {
     first_name: data.first_name,
@@ -144,6 +160,21 @@ export async function completeOnboarding(
     contact_email: data.contact_email,
     phone_country_code: data.phone_country_code,
     phone: data.phone,
+    supplier_countries: data.supplier_countries ?? [],
+    supplier_annual_volume: data.supplier_annual_volume,
+    client_countries: data.client_countries ?? [],
+    client_annual_volume: data.client_annual_volume,
+  })
+}
+
+export async function saveWalletAddresses(
+  privyToken: string,
+  evm_address: string | null,
+  solana_address: string | null
+) {
+  return upsertProfile(privyToken, {
+    ...(evm_address ? { evm_address } : {}),
+    ...(solana_address ? { solana_address } : {}),
   })
 }
 

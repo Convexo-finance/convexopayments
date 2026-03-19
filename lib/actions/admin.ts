@@ -349,7 +349,7 @@ export async function adminGetAllUsers(
   const from = (page - 1) * 20
   const { data, count, error } = await supabase
     .from('users')
-    .select('*, profiles(rut_status, rut_url, first_name, last_name)', {
+    .select('*, profiles(rut_status, rut_url, first_name, last_name, phone_country_code, phone, contact_email)', {
       count: 'exact',
     })
     .range(from, from + 19)

@@ -208,6 +208,11 @@ export type Database = {
       }
       payment_orders: {
         Row: {
+          admin_convexo_account_id: string | null
+          admin_fee: number | null
+          admin_fiat_amount: number | null
+          admin_proof_url: string | null
+          admin_rate: number | null
           amount: number
           convexo_account_id: string | null
           created_at: string | null
@@ -219,6 +224,7 @@ export type Database = {
           fiat_rate: number | null
           id: string
           invoice_url: string | null
+          notes: string | null
           own_profile_id: string | null
           payment_profile_id: string | null
           processing_fee: number | null
@@ -234,6 +240,11 @@ export type Database = {
           user_proof_url: string | null
         }
         Insert: {
+          admin_convexo_account_id?: string | null
+          admin_fee?: number | null
+          admin_fiat_amount?: number | null
+          admin_proof_url?: string | null
+          admin_rate?: number | null
           amount: number
           convexo_account_id?: string | null
           created_at?: string | null
@@ -245,6 +256,7 @@ export type Database = {
           fiat_rate?: number | null
           id?: string
           invoice_url?: string | null
+          notes?: string | null
           own_profile_id?: string | null
           payment_profile_id?: string | null
           processing_fee?: number | null
@@ -260,6 +272,11 @@ export type Database = {
           user_proof_url?: string | null
         }
         Update: {
+          admin_convexo_account_id?: string | null
+          admin_fee?: number | null
+          admin_fiat_amount?: number | null
+          admin_proof_url?: string | null
+          admin_rate?: number | null
           amount?: number
           convexo_account_id?: string | null
           created_at?: string | null
@@ -271,6 +288,7 @@ export type Database = {
           fiat_rate?: number | null
           id?: string
           invoice_url?: string | null
+          notes?: string | null
           own_profile_id?: string | null
           payment_profile_id?: string | null
           processing_fee?: number | null
@@ -286,6 +304,13 @@ export type Database = {
           user_proof_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payment_orders_admin_convexo_account_id_fkey"
+            columns: ["admin_convexo_account_id"]
+            isOneToOne: false
+            referencedRelation: "convexo_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payment_orders_convexo_account_id_fkey"
             columns: ["convexo_account_id"]
@@ -362,9 +387,12 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
+          client_annual_volume: string | null
+          client_countries: string[] | null
           contact_email: string | null
           country: string | null
           country_code: string | null
+          evm_address: string | null
           first_name: string | null
           id: string
           id_doc_url: string | null
@@ -381,8 +409,11 @@ export type Database = {
           rut_admin_note: string | null
           rut_status: string | null
           rut_url: string | null
+          solana_address: string | null
           state: string | null
           state_code: string | null
+          supplier_annual_volume: string | null
+          supplier_countries: string[] | null
           twitter: string | null
           updated_at: string | null
           usdc_balance: number | null
@@ -392,9 +423,12 @@ export type Database = {
         Insert: {
           address?: string | null
           city?: string | null
+          client_annual_volume?: string | null
+          client_countries?: string[] | null
           contact_email?: string | null
           country?: string | null
           country_code?: string | null
+          evm_address?: string | null
           first_name?: string | null
           id?: string
           id_doc_url?: string | null
@@ -411,8 +445,11 @@ export type Database = {
           rut_admin_note?: string | null
           rut_status?: string | null
           rut_url?: string | null
+          solana_address?: string | null
           state?: string | null
           state_code?: string | null
+          supplier_annual_volume?: string | null
+          supplier_countries?: string[] | null
           twitter?: string | null
           updated_at?: string | null
           usdc_balance?: number | null
@@ -422,9 +459,12 @@ export type Database = {
         Update: {
           address?: string | null
           city?: string | null
+          client_annual_volume?: string | null
+          client_countries?: string[] | null
           contact_email?: string | null
           country?: string | null
           country_code?: string | null
+          evm_address?: string | null
           first_name?: string | null
           id?: string
           id_doc_url?: string | null
@@ -441,8 +481,11 @@ export type Database = {
           rut_admin_note?: string | null
           rut_status?: string | null
           rut_url?: string | null
+          solana_address?: string | null
           state?: string | null
           state_code?: string | null
+          supplier_annual_volume?: string | null
+          supplier_countries?: string[] | null
           twitter?: string | null
           updated_at?: string | null
           usdc_balance?: number | null
@@ -716,13 +759,13 @@ export type Tables<
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+  ? (DefaultSchema["Tables"] &
+      DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
     : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
@@ -742,12 +785,12 @@ export type TablesInsert<
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
     : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
@@ -767,12 +810,12 @@ export type TablesUpdate<
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
     : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
@@ -788,8 +831,8 @@ export type Enums<
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
@@ -805,8 +848,8 @@ export type CompositeTypes<
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {

@@ -160,26 +160,8 @@ export function Sidebar({ isAdmin = false, nav }: SidebarProps) {
               ))}
             </nav>
 
-            {/* User + logout */}
+            {/* Logout */}
             <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #334EAC, #401777)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'white', fontSize: 13, fontWeight: 700, flexShrink: 0,
-                }}>
-                  {userInitials}
-                </div>
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ color: 'white', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {userEmail || 'User'}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
-                    {isAdmin ? 'Admin' : isEnabled ? 'Verified' : 'Pending verification'}
-                  </div>
-                </div>
-              </div>
               <button
                 onClick={handleLogout}
                 style={{
@@ -314,30 +296,11 @@ export function Sidebar({ isAdmin = false, nav }: SidebarProps) {
       </nav>
 
       {/* User footer */}
-      <div style={{ padding: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #334EAC, #401777)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontSize: 12, fontWeight: 700, flexShrink: 0,
-          }}>
-            {userInitials}
-          </div>
-          <div style={{ overflow: 'hidden', flex: 1 }}>
-            <div style={{ color: 'white', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {userEmail || 'User'}
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
-              {isAdmin ? 'Admin' : isEnabled ? 'Verified' : 'Pending verification'}
-            </div>
-          </div>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
-        </div>
+      <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <button
           onClick={handleLogout}
           style={{
-            marginTop: 10, width: '100%', padding: '7px 10px',
+            width: '100%', padding: '7px 10px',
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: 8, color: 'rgba(255,255,255,0.55)', fontSize: 12, cursor: 'pointer', textAlign: 'center',
           }}

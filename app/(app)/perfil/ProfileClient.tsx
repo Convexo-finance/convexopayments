@@ -151,6 +151,8 @@ export function ProfileClient({ privyToken, initialProfile }: ProfileClientProps
   const hasRUT = !!profile.rut_url
   const hasProofOfAddress = !!profile.proof_of_address_url
   const canSubmit = hasIDDoc && hasRUT
+  // Docs are locked once the account is fully enabled (verified + active)
+  const docsLocked = isEnabled
 
   return (
     <div style={{ maxWidth: 700, display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -356,68 +358,52 @@ export function ProfileClient({ privyToken, initialProfile }: ProfileClientProps
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* ID Document */}
-          <div style={{ borderRadius: 10, border: '1px solid rgba(186,214,235,0.1)', padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 20 }}>🪪</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Documento de identidad</div>
-                <div style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)' }}>Cédula, Pasaporte o Cédula de Extranjería</div>
-              </div>
-              {hasIDDoc && <DocBadge status="uploaded" />}
-            </div>
-            <FileUpload
-              label={hasIDDoc ? 'Reemplazar documento' : 'Subir documento de identidad (PDF, JPG, PNG)'}
-              accept=".pdf,.jpg,.jpeg,.png"
-              currentUrl={profile.id_doc_url}
-              onUpload={handleIDDocUpload}
-            />
-          </div>
+          <DocCard
+            icon="🪪"
+            title="Documento de identidad"
+            description="Cédula, Pasaporte o Cédula de Extranjería"
+            hasDoc={hasIDDoc}
+            docUrl={profile.id_doc_url}
+            badgeStatus="uploaded"
+            locked={docsLocked}
+            onUpload={handleIDDocUpload}
+            uploadLabel="Subir documento de identidad"
+          />
 
           {/* Proof of address */}
-          <div style={{ borderRadius: 10, border: '1px solid rgba(186,214,235,0.1)', padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 20 }}>🏠</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Prueba de domicilio</div>
-                <div style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)' }}>Extracto bancario o recibo de servicios con tu dirección</div>
-              </div>
-              {hasProofOfAddress && <DocBadge status="uploaded" />}
-            </div>
-            <FileUpload
-              label={hasProofOfAddress ? 'Reemplazar documento' : 'Subir prueba de domicilio (PDF, JPG, PNG)'}
-              accept=".pdf,.jpg,.jpeg,.png"
-              currentUrl={profile.proof_of_address_url}
-              onUpload={handleProofOfAddressUpload}
-            />
-          </div>
+          <DocCard
+            icon="🏠"
+            title="Prueba de domicilio"
+            description="Extracto bancario o recibo de servicios"
+            hasDoc={hasProofOfAddress}
+            docUrl={profile.proof_of_address_url}
+            badgeStatus="uploaded"
+            locked={docsLocked}
+            onUpload={handleProofOfAddressUpload}
+            uploadLabel="Subir prueba de domicilio"
+          />
 
           {/* RUT */}
-          <div style={{ borderRadius: 10, border: '1px solid rgba(186,214,235,0.1)', padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 20 }}>📄</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>RUT – Registro Único Tributario</div>
-                <div style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)' }}>Documento de la DIAN</div>
-              </div>
-              {hasRUT && <DocBadge status={rutStatus === 'VERIFICADO' ? 'verified' : rutStatus === 'PENDIENTE' ? 'review' : 'uploaded'} />}
-            </div>
-            <div style={{ background: '#fef3c7', borderRadius: 7, padding: '8px 12px', marginBottom: 10 }}>
-              <span style={{ fontSize: 12, color: '#92400e' }}>
-                ⚠ <strong>Debe tener menos de un mes de expedido.</strong> Documentos más antiguos serán rechazados.
-              </span>
-            </div>
-            {hasRUT && profile.rut_url && (
-              <div style={{ marginBottom: 8 }}>
-                <a href={profile.rut_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#BAD6EB' }}>Ver RUT subido →</a>
+          <DocCard
+            icon="📄"
+            title="RUT – Registro Único Tributario"
+            description="Documento de la DIAN"
+            hasDoc={hasRUT}
+            docUrl={profile.rut_url}
+            badgeStatus={rutStatus === 'VERIFICADO' ? 'verified' : rutStatus === 'PENDIENTE' ? 'review' : 'uploaded'}
+            locked={docsLocked}
+            onUpload={handleRUTUpload}
+            uploadLabel="Subir RUT"
+          >
+            {/* RUT warning — only show when not locked and not yet uploaded */}
+            {!docsLocked && (
+              <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 7, padding: '8px 12px', marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: '#f59e0b' }}>
+                  ⚠ <strong>Debe tener menos de un mes de expedido.</strong>
+                </span>
               </div>
             )}
-            <FileUpload
-              label={hasRUT ? 'Reemplazar RUT' : 'Subir RUT (PDF, JPG, PNG)'}
-              accept=".pdf,.jpg,.jpeg,.png"
-              currentUrl={profile.rut_url}
-              onUpload={handleRUTUpload}
-            />
-          </div>
+          </DocCard>
         </div>
 
         {/* Submit for verification */}
@@ -582,14 +568,74 @@ function CheckItem({ done, label }: { done: boolean; label: string }) {
 // ── DocBadge ──
 function DocBadge({ status }: { status: 'uploaded' | 'review' | 'verified' }) {
   const styles = {
-    uploaded: { bg: '#eff6ff', color: '#1d4ed8', label: 'Subido' },
-    review:   { bg: '#fef3c7', color: '#92400e', label: 'En revisión' },
-    verified: { bg: '#d1fae5', color: '#065f46', label: 'Verificado' },
+    uploaded: { bg: 'rgba(51,78,172,0.2)',   color: '#93c5fd', label: 'Subido' },
+    review:   { bg: 'rgba(245,158,11,0.15)', color: '#f59e0b', label: 'En revisión' },
+    verified: { bg: 'rgba(16,185,129,0.15)', color: '#10b981', label: 'Verificado' },
   }[status]
   return (
-    <span style={{ marginLeft: 'auto', background: styles.bg, color: styles.color, borderRadius: 99, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>
+    <span style={{ marginLeft: 'auto', background: styles.bg, color: styles.color, borderRadius: 99, padding: '2px 10px', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
       {styles.label}
     </span>
+  )
+}
+
+// ── DocCard ──
+interface DocCardProps {
+  icon: string
+  title: string
+  description: string
+  hasDoc: boolean
+  docUrl: string
+  badgeStatus: 'uploaded' | 'review' | 'verified'
+  locked: boolean
+  onUpload: (file: File) => Promise<string>
+  uploadLabel: string
+  children?: React.ReactNode
+}
+function DocCard({ icon, title, description, hasDoc, docUrl, badgeStatus, locked, onUpload, uploadLabel, children }: DocCardProps) {
+  return (
+    <div style={{ borderRadius: 10, border: '1px solid rgba(186,214,235,0.1)', padding: 16, background: 'rgba(255,255,255,0.02)' }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: hasDoc ? 10 : 12 }}>
+        <span style={{ fontSize: 20, flexShrink: 0 }}>{icon}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{title}</div>
+          <div style={{ fontSize: 12, color: 'rgba(186,214,235,0.4)' }}>{description}</div>
+        </div>
+        {hasDoc && <DocBadge status={badgeStatus} />}
+      </div>
+
+      {hasDoc ? (
+        <>
+          {/* Uploaded indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.18)', borderRadius: 8, padding: '9px 14px', marginBottom: locked ? 0 : 10 }}>
+            <span style={{ color: '#10b981', fontSize: 14, fontWeight: 700 }}>✓</span>
+            <span style={{ fontSize: 12, color: 'rgba(16,185,129,0.9)', fontWeight: 500, flex: 1 }}>Documento cargado</span>
+            <a href={docUrl} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 12, fontWeight: 600, color: '#BAD6EB', background: 'rgba(186,214,235,0.08)', border: '1px solid rgba(186,214,235,0.2)', borderRadius: 6, padding: '4px 10px', textDecoration: 'none', flexShrink: 0 }}>
+              Ver →
+            </a>
+          </div>
+          {/* When locked (verified), don't show upload. When not locked, show replace zone */}
+          {!locked && (
+            <>
+              {children}
+              <FileUpload label="Reemplazar documento" accept=".pdf,.jpg,.jpeg,.png" currentUrl={docUrl} onUpload={onUpload} />
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          {children}
+          {!locked && (
+            <FileUpload label={`${uploadLabel} (PDF, JPG, PNG)`} accept=".pdf,.jpg,.jpeg,.png" onUpload={onUpload} />
+          )}
+          {locked && (
+            <div style={{ fontSize: 12, color: 'rgba(186,214,235,0.3)', fontStyle: 'italic' }}>No subido</div>
+          )}
+        </>
+      )}
+    </div>
   )
 }
 
